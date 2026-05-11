@@ -107,14 +107,18 @@ export default function TeacherDashboard({ user, onLogout }) {
   const handleDownloadPdf = async (requestId) => {
     try {
       const res = await downloadPdf(requestId);
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `transfer_order_${requestId}.pdf`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
+      console.error('PDF download failed:', err);
     }
   };
 
@@ -513,13 +517,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                       )}
                       {h.status === 'Approved' && (
                         <button
-                          onClick={() => handleDownloadPdf(h.request_id)}
-                          className="mt-3 bg-navy hover:bg-navy-light text-white px-4 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-2"
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(h.request_id); }}
+                          className="mt-3 bg-navy hover:bg-navy/80 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer relative z-10 inline-flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          Download Transfer Order
+                          Download Transfer Order (PDF)
                         </button>
                       )}
                       {/* Timeline */}
