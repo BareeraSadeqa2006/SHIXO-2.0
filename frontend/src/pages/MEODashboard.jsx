@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMeoDashboard, approveTransfer, rejectTransfer } from '../api';
+import { getMeoDashboard, approveTransfer, rejectTransfer, getMeoAppeals, reviewAppeal } from '../api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -15,7 +15,7 @@ const REJECT_REASONS = [
   'Policy constraints - transfer freeze period active',
 ];
 
-const tabs = ['Overview', 'Requests', 'Schools', 'Analytics'];
+const tabs = ['Overview', 'Requests', 'Appeals', 'Schools', 'Analytics'];
 
 export default function MEODashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('Overview');
@@ -25,6 +25,9 @@ export default function MEODashboard({ user, onLogout }) {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [appealsData, setAppealsData] = useState(null);
+  const [appealReviewModal, setAppealReviewModal] = useState(null);
+  const [appealReviewNotes, setAppealReviewNotes] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,6 +45,9 @@ export default function MEODashboard({ user, onLogout }) {
     getMeoDashboard(user.user_id)
       .then(res => { if (!ignore) { setData(res.data); setLoading(false); } })
       .catch(() => { if (!ignore) setLoading(false); });
+    getMeoAppeals(user.user_id)
+      .then(res => { if (!ignore) setAppealsData(res.data); })
+      .catch(() => {});
     return () => { ignore = true; };
   }, [user.user_id]);
 
@@ -66,6 +72,29 @@ export default function MEODashboard({ user, onLogout }) {
       load();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to reject');
+    }
+    setActionLoading('');
+  };
+
+  const handleAppealAction = async (appealId, action) => {
+    if (action === 'reject' && !appealReviewNotes) {
+      setAppealReviewModal(appealId);
+      return;
+    }
+    setActionLoading(appealId);
+    try {
+      await reviewAppeal({
+        appeal_id: appealId,
+        meo_id: user.user_id,
+        action,
+        review_notes: appealReviewNotes,
+      });
+      setAppealReviewModal(null);
+      setAppealReviewNotes('');
+      load();
+      getMeoAppeals(user.user_id).then(r => setAppealsData(r.data)).catch(() => {});
+    } catch (err) {
+      alert(err.response?.data?.detail || `Failed to ${action} appeal`);
     }
     setActionLoading('');
   };
@@ -112,12 +141,16 @@ export default function MEODashboard({ user, onLogout }) {
               {t === 'Overview' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>}
               {t === 'Requests' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
               {t === 'Schools' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
+              {t === 'Appeals' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
               {t === 'Analytics' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
               {sidebarOpen && (
                 <span className="flex-1 text-left">
                   {t}
                   {t === 'Requests' && data.pending_requests?.length > 0 && (
                     <span className="ml-2 bg-gold text-navy text-xs rounded-full px-1.5 py-0.5 font-bold">{data.pending_requests.length}</span>
+                  )}
+                  {t === 'Appeals' && appealsData?.pending_appeals?.length > 0 && (
+                    <span className="ml-2 bg-alert text-white text-xs rounded-full px-1.5 py-0.5 font-bold">{appealsData.pending_appeals.length}</span>
                   )}
                 </span>
               )}
@@ -327,6 +360,116 @@ export default function MEODashboard({ user, onLogout }) {
             </div>
           )}
 
+          {/* Appeals */}
+          {activeTab === 'Appeals' && (
+            <div className="space-y-6">
+              {/* Pending Appeals */}
+              <div className="bg-white rounded-xl border border-light-gray p-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                  Pending Appeals ({appealsData?.pending_appeals?.length || 0})
+                </h3>
+                {!appealsData?.pending_appeals?.length ? (
+                  <p className="text-sm text-gray-400 text-center py-6">No pending appeals</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-soft-white">
+                          <th className="text-left p-3 font-medium text-gray-500">Appeal ID</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Teacher</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Original Request</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Type</th>
+                          <th className="text-center p-3 font-medium text-gray-500">Emergency</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Reason</th>
+                          <th className="text-center p-3 font-medium text-gray-500">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appealsData.pending_appeals.map((a) => (
+                          <tr key={a.appeal_id} className="border-t border-light-gray hover:bg-soft-white">
+                            <td className="p-3 font-mono text-xs">{a.appeal_id}</td>
+                            <td className="p-3 font-medium">{a.teacher_id}</td>
+                            <td className="p-3 font-mono text-xs">{a.original_request_id}</td>
+                            <td className="p-3 text-xs capitalize">{a.appeal_type?.replace('_', ' ')}</td>
+                            <td className="p-3 text-center">
+                              {a.is_emergency ? (
+                                <span className="bg-alert/10 text-alert text-xs px-2 py-0.5 rounded-full font-medium">Yes</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">No</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-xs text-gray-500 max-w-[200px] truncate">{a.appeal_reason}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center gap-2 justify-center">
+                                <button
+                                  onClick={() => handleAppealAction(a.appeal_id, 'approve')}
+                                  disabled={actionLoading === a.appeal_id}
+                                  className="bg-success hover:bg-success/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => { setAppealReviewModal(a.appeal_id); setAppealReviewNotes(''); }}
+                                  disabled={actionLoading === a.appeal_id}
+                                  className="bg-alert hover:bg-alert/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Reviewed Appeals */}
+              <div className="bg-white rounded-xl border border-light-gray p-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                  Reviewed Appeals ({appealsData?.reviewed_appeals?.length || 0})
+                </h3>
+                {!appealsData?.reviewed_appeals?.length ? (
+                  <p className="text-sm text-gray-400 text-center py-4">None</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-soft-white">
+                          <th className="text-left p-3 font-medium text-gray-500">Appeal ID</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Teacher</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Original Request</th>
+                          <th className="text-center p-3 font-medium text-gray-500">Status</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Review Notes</th>
+                          <th className="text-left p-3 font-medium text-gray-500">Reviewed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appealsData.reviewed_appeals.map((a) => (
+                          <tr key={a.appeal_id} className="border-t border-light-gray">
+                            <td className="p-3 font-mono text-xs">{a.appeal_id}</td>
+                            <td className="p-3">{a.teacher_id}</td>
+                            <td className="p-3 font-mono text-xs">{a.original_request_id}</td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                a.status === 'Approved' ? 'bg-success/10 text-success' : 'bg-alert/10 text-alert'
+                              }`}>
+                                {a.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-xs text-gray-500">{a.review_notes || '-'}</td>
+                            <td className="p-3 text-xs">{a.reviewed_date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Schools */}
           {activeTab === 'Schools' && (
             <div className="bg-white rounded-xl border border-light-gray p-6">
@@ -447,6 +590,42 @@ export default function MEODashboard({ user, onLogout }) {
           )}
         </main>
       </div>
+
+      {/* Appeal Review Modal */}
+      {appealReviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-navy mb-4">Reject Appeal</h3>
+            <p className="text-sm text-gray-500 mb-4">Appeal: {appealReviewModal}</p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Review Notes / Rejection Reason</label>
+              <textarea
+                value={appealReviewNotes}
+                onChange={(e) => setAppealReviewNotes(e.target.value)}
+                rows={3}
+                placeholder="Provide reason for rejection..."
+                className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal resize-none"
+                required
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleAppealAction(appealReviewModal, 'reject')}
+                disabled={!appealReviewNotes}
+                className="flex-1 bg-alert hover:bg-alert/80 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                Confirm Rejection
+              </button>
+              <button
+                onClick={() => setAppealReviewModal(null)}
+                className="flex-1 bg-light-gray hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {rejectModal && (

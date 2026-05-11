@@ -2,12 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getTeacherProfile, predictTransfer, recommendSchool,
   applyTransfer, getTransferHistory, getNotifications,
-  markNotificationRead, downloadPdf
+  markNotificationRead, downloadPdf, checkReapplyEligibility,
+  submitAppeal, reapplyTransfer, getTeacherAppeals
 } from '../api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#0B3C5D', '#328CC1', '#2E8B57', '#D4AF37', '#C0392B', '#154872'];
-const tabs = ['Dashboard', 'Transfer', 'History', 'Notifications'];
+const tabs = ['Dashboard', 'Transfer', 'History', 'Appeals', 'Notifications'];
+
+const APPEAL_TYPES = [
+  { value: 'standard', label: 'Standard Appeal' },
+  { value: 'medical_emergency', label: 'Medical Emergency' },
+  { value: 'spouse_relocation', label: 'Spouse Relocation' },
+  { value: 'reconsideration', label: 'Request Reconsideration' },
+];
 
 export default function TeacherDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -21,6 +29,12 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [applyMsg, setApplyMsg] = useState('');
   const [loading, setLoading] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [appeals, setAppeals] = useState([]);
+  const [reapplyEligibility, setReapplyEligibility] = useState(null);
+  const [appealForm, setAppealForm] = useState({ requestId: '', reason: '', type: 'standard', isEmergency: false });
+  const [appealMsg, setAppealMsg] = useState('');
+  const [reapplyForm, setReapplyForm] = useState({ school: '', reason: '' });
+  const [reapplyMsg, setReapplyMsg] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -42,6 +56,8 @@ export default function TeacherDashboard({ user, onLogout }) {
     getTeacherProfile(user.user_id).then(r => { if (!ignore) setProfile(r.data); });
     getTransferHistory(user.user_id).then(r => { if (!ignore) setHistory(r.data); });
     getNotifications(user.user_id).then(r => { if (!ignore) setNotifs(r.data); });
+    getTeacherAppeals(user.user_id).then(r => { if (!ignore) setAppeals(r.data); }).catch(() => {});
+    checkReapplyEligibility(user.user_id).then(r => { if (!ignore) setReapplyEligibility(r.data); }).catch(() => {});
     return () => { ignore = true; };
   }, [user.user_id]);
 
@@ -107,6 +123,64 @@ export default function TeacherDashboard({ user, onLogout }) {
     load();
   };
 
+  const handleSubmitAppeal = async (e) => {
+    e.preventDefault();
+    if (!appealForm.requestId || !appealForm.reason) return;
+    setLoading(p => ({ ...p, appeal: true }));
+    setAppealMsg('');
+    try {
+      const res = await submitAppeal({
+        teacher_id: user.user_id,
+        original_request_id: appealForm.requestId,
+        appeal_reason: appealForm.reason,
+        appeal_type: appealForm.type,
+        is_emergency: appealForm.isEmergency,
+      });
+      setAppealMsg(res.data.message || 'Appeal submitted!');
+      setAppealForm({ requestId: '', reason: '', type: 'standard', isEmergency: false });
+      load();
+      getTeacherAppeals(user.user_id).then(r => setAppeals(r.data)).catch(() => {});
+      checkReapplyEligibility(user.user_id).then(r => setReapplyEligibility(r.data)).catch(() => {});
+    } catch (err) {
+      setAppealMsg(err.response?.data?.detail || 'Failed to submit appeal');
+    }
+    setLoading(p => ({ ...p, appeal: false }));
+  };
+
+  const handleReapply = async (e) => {
+    e.preventDefault();
+    if (!reapplyForm.school || !reapplyForm.reason) return;
+    setLoading(p => ({ ...p, reapply: true }));
+    setReapplyMsg('');
+    try {
+      const res = await reapplyTransfer({
+        teacher_id: user.user_id,
+        requested_school: reapplyForm.school,
+        transfer_reason: reapplyForm.reason,
+      });
+      setReapplyMsg(res.data.message || 'Re-application submitted!');
+      setReapplyForm({ school: '', reason: '' });
+      load();
+      checkReapplyEligibility(user.user_id).then(r => setReapplyEligibility(r.data)).catch(() => {});
+    } catch (err) {
+      setReapplyMsg(err.response?.data?.detail || 'Failed to submit re-application');
+    }
+    setLoading(p => ({ ...p, reapply: false }));
+  };
+
+  const refreshAppeals = async () => {
+    try {
+      const [appealsRes, eligRes] = await Promise.all([
+        getTeacherAppeals(user.user_id),
+        checkReapplyEligibility(user.user_id),
+      ]);
+      setAppeals(appealsRes.data);
+      setReapplyEligibility(eligRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const priorityData = prediction ? [
@@ -142,6 +216,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               {t === 'Dashboard' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg>}
               {t === 'Transfer' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>}
               {t === 'History' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+              {t === 'Appeals' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
               {t === 'Notifications' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>}
               {sidebarOpen && (
                 <span className="flex-1 text-left">
@@ -467,6 +542,226 @@ export default function TeacherDashboard({ user, onLogout }) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Appeals Tab */}
+          {activeTab === 'Appeals' && (
+            <div className="space-y-6">
+              {/* Reapply Eligibility Status */}
+              <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Re-Apply Eligibility</h3>
+                  <button onClick={refreshAppeals} className="text-xs text-teal hover:underline">Refresh Status</button>
+                </div>
+                {reapplyEligibility ? (
+                  <div className="space-y-3">
+                    <div className={`flex items-center gap-3 p-4 rounded-lg border ${
+                      reapplyEligibility.eligible
+                        ? 'bg-success/5 border-success/20'
+                        : 'bg-alert/5 border-alert/20'
+                    }`}>
+                      <div className={`w-3 h-3 rounded-full ${reapplyEligibility.eligible ? 'bg-success' : 'bg-alert'}`}></div>
+                      <div>
+                        <p className={`text-sm font-medium ${reapplyEligibility.eligible ? 'text-success' : 'text-alert'}`}>
+                          {reapplyEligibility.eligible ? 'Eligible for Re-Application' : 'Not Currently Eligible'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">{reapplyEligibility.reason}</p>
+                      </div>
+                    </div>
+                    {reapplyEligibility.can_bypass_waiting && (
+                      <div className="bg-gold/5 border border-gold/20 rounded-lg p-3">
+                        <p className="text-sm text-gold font-medium">Emergency Bypass Available</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{reapplyEligibility.bypass_reason}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-soft-white rounded-lg p-3 border border-light-gray">
+                        <p className="text-lg font-bold text-navy">{reapplyEligibility.transfer_attempt_count}</p>
+                        <p className="text-xs text-gray-500">Transfer Attempts</p>
+                      </div>
+                      <div className="bg-soft-white rounded-lg p-3 border border-light-gray">
+                        <p className="text-lg font-bold text-navy">{reapplyEligibility.days_remaining}</p>
+                        <p className="text-xs text-gray-500">Days Remaining</p>
+                      </div>
+                      <div className="bg-soft-white rounded-lg p-3 border border-light-gray">
+                        <p className="text-lg font-bold text-navy">{reapplyEligibility.last_transfer_date || 'N/A'}</p>
+                        <p className="text-xs text-gray-500">Last Transfer</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-4">Loading eligibility...</p>
+                )}
+              </div>
+
+              {/* Appeal Submission Form */}
+              {reapplyEligibility?.has_rejected_requests && (
+                <div className="bg-white rounded-xl border border-light-gray p-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Submit Transfer Appeal</h3>
+                  <form onSubmit={handleSubmitAppeal} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Rejected Request</label>
+                      <select
+                        value={appealForm.requestId}
+                        onChange={(e) => setAppealForm(p => ({ ...p, requestId: e.target.value }))}
+                        className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                        required
+                      >
+                        <option value="">Select a rejected request...</option>
+                        {reapplyEligibility.rejected_requests?.map(r => (
+                          <option key={r.request_id} value={r.request_id}>
+                            {r.request_id} — {r.current_school} → {r.requested_school} ({r.request_date})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Appeal Type</label>
+                      <select
+                        value={appealForm.type}
+                        onChange={(e) => setAppealForm(p => ({ ...p, type: e.target.value }))}
+                        className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                      >
+                        {APPEAL_TYPES.map(t => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Appeal Reason</label>
+                      <textarea
+                        value={appealForm.reason}
+                        onChange={(e) => setAppealForm(p => ({ ...p, reason: e.target.value }))}
+                        rows={3}
+                        placeholder="Explain why your transfer should be reconsidered..."
+                        className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal resize-none"
+                        required
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="emergency"
+                        checked={appealForm.isEmergency}
+                        onChange={(e) => setAppealForm(p => ({ ...p, isEmergency: e.target.checked }))}
+                        className="w-4 h-4 text-teal border-light-gray rounded focus:ring-teal"
+                      />
+                      <label htmlFor="emergency" className="text-sm text-gray-700">
+                        Mark as Emergency (medical/spouse relocation — bypasses waiting period)
+                      </label>
+                    </div>
+                    {appealMsg && (
+                      <div className={`text-sm rounded-lg px-4 py-2.5 ${
+                        appealMsg.includes('submitted') || appealMsg.includes('success')
+                          ? 'bg-success/10 text-success' : 'bg-alert/10 text-alert'
+                      }`}>
+                        {appealMsg}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading.appeal}
+                      className="bg-gold hover:bg-gold/80 text-navy px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {loading.appeal ? 'Submitting...' : 'Submit Appeal'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Re-Apply Form */}
+              {(reapplyEligibility?.eligible || reapplyEligibility?.can_bypass_waiting) && (
+                <div className="bg-white rounded-xl border border-light-gray p-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Re-Apply for Transfer</h3>
+                  {reapplyEligibility?.can_bypass_waiting && (
+                    <div className="bg-gold/5 border border-gold/20 rounded-lg p-3 mb-4">
+                      <p className="text-xs text-gold">You are applying under emergency bypass: {reapplyEligibility.bypass_reason}</p>
+                    </div>
+                  )}
+                  <form onSubmit={handleReapply} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">School ID</label>
+                      <input
+                        type="text"
+                        value={reapplyForm.school}
+                        onChange={(e) => setReapplyForm(p => ({ ...p, school: e.target.value }))}
+                        placeholder="Enter school ID (e.g., SCH0001)"
+                        className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Transfer Reason</label>
+                      <textarea
+                        value={reapplyForm.reason}
+                        onChange={(e) => setReapplyForm(p => ({ ...p, reason: e.target.value }))}
+                        rows={3}
+                        placeholder="Describe reason for re-application..."
+                        className="w-full border border-light-gray rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal resize-none"
+                        required
+                      />
+                    </div>
+                    {reapplyMsg && (
+                      <div className={`text-sm rounded-lg px-4 py-2.5 ${
+                        reapplyMsg.includes('submitted') || reapplyMsg.includes('success')
+                          ? 'bg-success/10 text-success' : 'bg-alert/10 text-alert'
+                      }`}>
+                        {reapplyMsg}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading.reapply}
+                      className="bg-teal hover:bg-teal-light text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {loading.reapply ? 'Submitting...' : 'Submit Re-Application'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Appeals History */}
+              <div className="bg-white rounded-xl border border-light-gray p-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Appeal History</h3>
+                {appeals.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-6">No appeals submitted yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {appeals.map((a) => (
+                      <div key={a.appeal_id} className="border border-light-gray rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-mono text-gray-400">{a.appeal_id}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            a.status === 'Approved' ? 'bg-success/10 text-success' :
+                            a.status === 'Rejected' ? 'bg-alert/10 text-alert' :
+                            'bg-gold/10 text-gold'
+                          }`}>
+                            {a.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="text-gray-400">Original Request:</span> <span className="font-mono text-xs">{a.original_request_id}</span></div>
+                          <div><span className="text-gray-400">Type:</span> <span className="font-medium capitalize">{a.appeal_type?.replace('_', ' ')}</span></div>
+                          <div><span className="text-gray-400">Submitted:</span> <span>{a.submitted_date}</span></div>
+                          {a.is_emergency ? <div><span className="text-gold font-medium">Emergency</span></div> : null}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2 bg-soft-white rounded p-2">{a.appeal_reason}</p>
+                        {a.review_notes && (
+                          <div className={`mt-2 text-sm rounded px-3 py-2 ${
+                            a.status === 'Approved' ? 'bg-success/5 text-success' : 'bg-alert/5 text-alert'
+                          }`}>
+                            Review Notes: {a.review_notes}
+                          </div>
+                        )}
+                        {a.reviewed_date && (
+                          <p className="text-xs text-gray-400 mt-1">Reviewed on {a.reviewed_date} by {a.reviewed_by}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

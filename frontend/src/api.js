@@ -22,4 +22,12 @@ export const getSchools = (mandal) => api.get('/schools', { params: mandal ? { m
 export const downloadPdf = (request_id) => api.get(`/download_transfer_pdf/${request_id}`, { responseType: 'blob' });
 export const getTestCredentials = () => api.get('/test_credentials');
 
+// Appeal / Re-Apply APIs
+export const checkReapplyEligibility = (id) => api.get(`/check_reapply_eligibility/${id}`);
+export const submitAppeal = (data) => api.post('/submit_appeal', data);
+export const reapplyTransfer = (data) => api.post('/reapply_transfer', data);
+export const getTeacherAppeals = (id) => api.get(`/appeals/${id}`);
+export const getMeoAppeals = (id) => api.get(`/meo/${id}/appeals`);
+export const reviewAppeal = (data) => api.post('/review_appeal', data);
+
 export default api;

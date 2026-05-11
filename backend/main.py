@@ -63,6 +63,24 @@ class RejectTransferRequest(BaseModel):
 class RecommendSchoolRequest(BaseModel):
     teacher_id: str
 
+class SubmitAppealRequest(BaseModel):
+    teacher_id: str
+    original_request_id: str
+    appeal_reason: str
+    appeal_type: str = "standard"
+    is_emergency: bool = False
+
+class ReviewAppealRequest(BaseModel):
+    appeal_id: str
+    meo_id: str
+    action: str  # 'approve' or 'reject'
+    review_notes: str = ""
+
+class ReapplyTransferRequest(BaseModel):
+    teacher_id: str
+    requested_school: str
+    transfer_reason: str
+
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
@@ -680,11 +698,14 @@ def approve_transfer(req: ApproveTransferRequest):
         (now, req.request_id)
     )
 
-    # Update teacher record
+    # Update teacher record with last_transfer_date and increment attempt count
     conn.execute(
         """UPDATE teachers SET current_school = ?, transfer_status = 'Approved',
-           requested_school = NULL, transfer_request = 0 WHERE teacher_id = ?""",
-        (new_school, teacher_id)
+           requested_school = NULL, transfer_request = 0,
+           last_transfer_date = ?, reapply_eligible = 0,
+           transfer_attempt_count = transfer_attempt_count + 1
+           WHERE teacher_id = ?""",
+        (new_school, now, teacher_id)
     )
 
     # Update old school count
@@ -759,7 +780,9 @@ def reject_transfer(req: RejectTransferRequest):
     )
 
     conn.execute(
-        "UPDATE teachers SET transfer_status = 'Rejected', requested_school = NULL WHERE teacher_id = ?",
+        """UPDATE teachers SET transfer_status = 'Rejected', requested_school = NULL,
+           transfer_attempt_count = transfer_attempt_count + 1
+           WHERE teacher_id = ?""",
         (request["teacher_id"],)
     )
     conn.commit()
@@ -901,6 +924,349 @@ def workforce_stats():
         "top_surplus_schools": top_surplus,
         "total_teachers": len(teachers_list),
         "total_schools": len(schools_list),
+    }
+
+
+# ── Appeal / Re-Apply Endpoints ──────────────────────────────────────────────
+
+MIN_WAITING_DAYS = 180  # 6 months minimum waiting period
+
+
+@app.get("/check_reapply_eligibility/{teacher_id}")
+def check_reapply_eligibility(teacher_id: str):
+    conn = get_db()
+    teacher = conn.execute(
+        "SELECT * FROM teachers WHERE teacher_id = ?", (teacher_id,)
+    ).fetchone()
+    if not teacher:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Teacher not found")
+
+    # Check for pending transfer or appeal
+    pending_transfer = conn.execute(
+        "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Pending'",
+        (teacher_id,)
+    ).fetchone()
+    pending_appeal = conn.execute(
+        "SELECT * FROM appeals WHERE teacher_id = ? AND status = 'Pending'",
+        (teacher_id,)
+    ).fetchone()
+
+    # Get rejected requests for appeal eligibility
+    rejected_requests = conn.execute(
+        "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Rejected' ORDER BY request_date DESC",
+        (teacher_id,)
+    ).fetchall()
+    conn.close()
+
+    t = dict(teacher)
+    last_transfer = t.get("last_transfer_date")
+    attempt_count = t.get("transfer_attempt_count", 0)
+    has_medical = t.get("medical_condition", 0) == 1
+    spouse_far = t.get("spouse_distance", 0) > 200
+
+    # Calculate waiting period
+    eligible = True
+    days_remaining = 0
+    can_bypass = False
+    bypass_reason = ""
+
+    if pending_transfer:
+        eligible = False
+        reason = "You have a pending transfer request"
+    elif pending_appeal:
+        eligible = False
+        reason = "You have a pending appeal"
+    elif last_transfer:
+        from datetime import datetime as dt
+        last_date = dt.strptime(last_transfer, "%Y-%m-%d")
+        days_since = (dt.now() - last_date).days
+        days_remaining = max(0, MIN_WAITING_DAYS - days_since)
+
+        if days_remaining > 0:
+            eligible = False
+            reason = f"Minimum waiting period not completed. {days_remaining} days remaining."
+            if has_medical:
+                can_bypass = True
+                bypass_reason = "Medical emergency — eligible for waiting period bypass"
+            elif spouse_far:
+                can_bypass = True
+                bypass_reason = "Spouse relocation (>200km) — eligible for waiting period bypass"
+        else:
+            reason = "Eligible for reapplication"
+    else:
+        reason = "Eligible for transfer application"
+
+    return {
+        "teacher_id": teacher_id,
+        "eligible": eligible,
+        "can_bypass_waiting": can_bypass,
+        "bypass_reason": bypass_reason,
+        "reason": reason,
+        "days_remaining": days_remaining,
+        "last_transfer_date": last_transfer,
+        "transfer_attempt_count": attempt_count,
+        "has_rejected_requests": len(rejected_requests) > 0,
+        "rejected_requests": [dict(r) for r in rejected_requests],
+        "has_medical_condition": has_medical,
+        "has_spouse_relocation": spouse_far,
+    }
+
+
+@app.post("/submit_appeal")
+def submit_appeal(req: SubmitAppealRequest):
+    conn = get_db()
+    teacher = conn.execute(
+        "SELECT * FROM teachers WHERE teacher_id = ?", (req.teacher_id,)
+    ).fetchone()
+    if not teacher:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Teacher not found")
+
+    # Verify the original request exists and was rejected
+    original = conn.execute(
+        "SELECT * FROM transfer_requests WHERE request_id = ?", (req.original_request_id,)
+    ).fetchone()
+    if not original:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Original transfer request not found")
+    if original["status"] != "Rejected":
+        conn.close()
+        raise HTTPException(status_code=400, detail="Can only appeal rejected transfer requests")
+    if original["teacher_id"] != req.teacher_id:
+        conn.close()
+        raise HTTPException(status_code=403, detail="This request does not belong to you")
+
+    # Check for existing pending appeal on same request
+    existing = conn.execute(
+        "SELECT * FROM appeals WHERE original_request_id = ? AND status = 'Pending'",
+        (req.original_request_id,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=400, detail="An appeal is already pending for this request")
+
+    t = dict(teacher)
+    appeal_id = f"APL{uuid.uuid4().hex[:8].upper()}"
+    now = datetime.now().strftime("%Y-%m-%d")
+
+    conn.execute(
+        """INSERT INTO appeals
+        (appeal_id, teacher_id, original_request_id, appeal_reason, appeal_type,
+         is_emergency, status, submitted_date, assigned_meo, mandal)
+        VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, ?, ?)""",
+        (appeal_id, req.teacher_id, req.original_request_id, req.appeal_reason,
+         req.appeal_type, 1 if req.is_emergency else 0, now,
+         t["assigned_meo"], t["mandal"])
+    )
+    conn.commit()
+    conn.close()
+
+    add_notification(
+        req.teacher_id,
+        f"Your appeal ({appeal_id}) for request {req.original_request_id} has been submitted for review.",
+        "info"
+    )
+
+    return {
+        "success": True,
+        "appeal_id": appeal_id,
+        "message": "Appeal submitted successfully"
+    }
+
+
+@app.post("/reapply_transfer")
+def reapply_transfer(req: ReapplyTransferRequest):
+    conn = get_db()
+    teacher = conn.execute(
+        "SELECT * FROM teachers WHERE teacher_id = ?", (req.teacher_id,)
+    ).fetchone()
+    if not teacher:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Teacher not found")
+
+    t = dict(teacher)
+
+    # Check for pending request
+    pending = conn.execute(
+        "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Pending'",
+        (req.teacher_id,)
+    ).fetchone()
+    if pending:
+        conn.close()
+        raise HTTPException(status_code=400, detail="You already have a pending transfer request")
+
+    # Check waiting period
+    last_transfer = t.get("last_transfer_date")
+    has_medical = t.get("medical_condition", 0) == 1
+    spouse_far = t.get("spouse_distance", 0) > 200
+
+    if last_transfer:
+        from datetime import datetime as dt
+        last_date = dt.strptime(last_transfer, "%Y-%m-%d")
+        days_since = (dt.now() - last_date).days
+        if days_since < MIN_WAITING_DAYS and not (has_medical or spouse_far):
+            conn.close()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Minimum waiting period not completed. {MIN_WAITING_DAYS - days_since} days remaining."
+            )
+
+    # Verify school exists
+    school = conn.execute(
+        "SELECT * FROM schools WHERE school_id = ?", (req.requested_school,)
+    ).fetchone()
+    if not school:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Requested school not found")
+
+    priority = compute_priority(t)
+    request_id = f"REQ{uuid.uuid4().hex[:8].upper()}"
+    now = datetime.now().strftime("%Y-%m-%d")
+
+    conn.execute(
+        """INSERT INTO transfer_requests
+        (request_id, teacher_id, current_school, requested_school, mandal,
+         request_date, transfer_reason, priority_score, status, assigned_meo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)""",
+        (request_id, req.teacher_id, t["current_school"], req.requested_school,
+         t["mandal"], now, req.transfer_reason, priority, t["assigned_meo"])
+    )
+
+    conn.execute(
+        """UPDATE teachers SET transfer_status = 'Pending', requested_school = ?,
+           reapply_eligible = 0 WHERE teacher_id = ?""",
+        (req.requested_school, req.teacher_id)
+    )
+    conn.commit()
+    conn.close()
+
+    add_notification(
+        req.teacher_id,
+        f"Your re-application ({request_id}) has been submitted and is pending review.",
+        "info"
+    )
+
+    return {
+        "success": True,
+        "request_id": request_id,
+        "message": "Transfer re-application submitted successfully"
+    }
+
+
+@app.get("/appeals/{teacher_id}")
+def get_teacher_appeals(teacher_id: str):
+    conn = get_db()
+    appeals = conn.execute(
+        "SELECT * FROM appeals WHERE teacher_id = ? ORDER BY submitted_date DESC",
+        (teacher_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(a) for a in appeals]
+
+
+@app.post("/review_appeal")
+def review_appeal(req: ReviewAppealRequest):
+    conn = get_db()
+    appeal = conn.execute(
+        "SELECT * FROM appeals WHERE appeal_id = ?", (req.appeal_id,)
+    ).fetchone()
+    if not appeal:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Appeal not found")
+
+    if appeal["status"] != "Pending":
+        conn.close()
+        raise HTTPException(status_code=400, detail="Appeal is not pending")
+
+    meo = conn.execute("SELECT * FROM meos WHERE meo_id = ?", (req.meo_id,)).fetchone()
+    if not meo:
+        conn.close()
+        raise HTTPException(status_code=404, detail="MEO not found")
+
+    if meo["assigned_mandal"] != appeal["mandal"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Not authorized for this mandal")
+
+    now = datetime.now().strftime("%Y-%m-%d")
+    teacher_id = appeal["teacher_id"]
+    original_request_id = appeal["original_request_id"]
+
+    if req.action == "approve":
+        # Approve the appeal: reopen the original transfer request
+        conn.execute(
+            "UPDATE appeals SET status = 'Approved', reviewed_date = ?, reviewed_by = ?, review_notes = ? WHERE appeal_id = ?",
+            (now, req.meo_id, req.review_notes, req.appeal_id)
+        )
+
+        # Reset the original transfer request back to Pending
+        conn.execute(
+            "UPDATE transfer_requests SET status = 'Pending', rejection_reason = NULL, approval_date = NULL WHERE request_id = ?",
+            (original_request_id,)
+        )
+
+        conn.execute(
+            "UPDATE teachers SET transfer_status = 'Pending', reapply_eligible = 0 WHERE teacher_id = ?",
+            (teacher_id,)
+        )
+        conn.commit()
+        conn.close()
+
+        add_notification(
+            teacher_id,
+            f"Your appeal ({req.appeal_id}) has been APPROVED. Your transfer request ({original_request_id}) has been reopened for review.",
+            "success"
+        )
+
+        return {"success": True, "message": "Appeal approved — transfer request reopened"}
+
+    elif req.action == "reject":
+        conn.execute(
+            "UPDATE appeals SET status = 'Rejected', reviewed_date = ?, reviewed_by = ?, review_notes = ? WHERE appeal_id = ?",
+            (now, req.meo_id, req.review_notes, req.appeal_id)
+        )
+
+        conn.execute(
+            "UPDATE teachers SET reapply_eligible = 1 WHERE teacher_id = ?",
+            (teacher_id,)
+        )
+        conn.commit()
+        conn.close()
+
+        add_notification(
+            teacher_id,
+            f"Your appeal ({req.appeal_id}) has been REJECTED. Reason: {req.review_notes or 'No additional notes'}",
+            "error"
+        )
+
+        return {"success": True, "message": "Appeal rejected"}
+    else:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'approve' or 'reject'.")
+
+
+@app.get("/meo/{meo_id}/appeals")
+def meo_appeals(meo_id: str):
+    conn = get_db()
+    meo = conn.execute("SELECT * FROM meos WHERE meo_id = ?", (meo_id,)).fetchone()
+    if not meo:
+        conn.close()
+        raise HTTPException(status_code=404, detail="MEO not found")
+
+    mandal = meo["assigned_mandal"]
+    pending = conn.execute(
+        "SELECT * FROM appeals WHERE mandal = ? AND status = 'Pending' ORDER BY submitted_date DESC",
+        (mandal,)
+    ).fetchall()
+    reviewed = conn.execute(
+        "SELECT * FROM appeals WHERE mandal = ? AND status != 'Pending' ORDER BY reviewed_date DESC",
+        (mandal,)
+    ).fetchall()
+    conn.close()
+
+    return {
+        "pending_appeals": [dict(a) for a in pending],
+        "reviewed_appeals": [dict(a) for a in reviewed],
     }
 
 

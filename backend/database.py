@@ -143,7 +143,10 @@ def init_db():
         assigned_meo TEXT REFERENCES meos(meo_id),
         requested_school TEXT,
         transfer_status TEXT DEFAULT 'None',
-        notification_status TEXT DEFAULT ''
+        notification_status TEXT DEFAULT '',
+        last_transfer_date TEXT,
+        reapply_eligible INTEGER DEFAULT 1,
+        transfer_attempt_count INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS transfer_requests (
@@ -169,6 +172,22 @@ def init_db():
         type TEXT DEFAULT 'info',
         read INTEGER DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS appeals (
+        appeal_id TEXT PRIMARY KEY,
+        teacher_id TEXT REFERENCES teachers(teacher_id),
+        original_request_id TEXT REFERENCES transfer_requests(request_id),
+        appeal_reason TEXT NOT NULL,
+        appeal_type TEXT DEFAULT 'standard',
+        is_emergency INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'Pending',
+        submitted_date TEXT,
+        reviewed_date TEXT,
+        reviewed_by TEXT,
+        review_notes TEXT,
+        assigned_meo TEXT REFERENCES meos(meo_id),
+        mandal TEXT
     );
     """)
 
@@ -272,12 +291,13 @@ def seed_db():
                 tid, hash_password(f"tch{teacher_id_counter:05d}"),
                 "teacher", f"{fname} {lname}", gender, subject,
                 school[0], mandal, yos, rural, tr, med, spouse,
-                promo, status, meo_id, None, "None", ""
+                promo, status, meo_id, None, "None", "",
+                None, 1, 0
             ))
             teacher_id_counter += 1
 
     c.executemany(
-        "INSERT INTO teachers VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO teachers VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         all_teachers
     )
 
