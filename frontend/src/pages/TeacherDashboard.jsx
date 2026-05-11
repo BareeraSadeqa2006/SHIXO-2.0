@@ -110,7 +110,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `transfer_order_${requestId}.txt`;
+      link.download = `transfer_order_${requestId}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {

@@ -214,6 +214,14 @@ def add_notification(teacher_id: str, message: str, ntype: str = "info"):
 
 
 def generate_transfer_pdf(request_id: str) -> str:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm, cm
+    from reportlab.lib.colors import HexColor
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.platypus.flowables import KeepTogether
+
     conn = get_db()
     req = conn.execute(
         "SELECT * FROM transfer_requests WHERE request_id = ?", (request_id,)
@@ -233,70 +241,203 @@ def generate_transfer_pdf(request_id: str) -> str:
     new_school = conn.execute(
         "SELECT * FROM schools WHERE school_id = ?", (req["requested_school"],)
     ).fetchone()
+
+    meo = conn.execute(
+        "SELECT * FROM meos WHERE meo_id = ?", (req["assigned_meo"],)
+    ).fetchone()
     conn.close()
 
     if not teacher or not old_school or not new_school:
         return ""
 
-    pdf_filename = f"transfer_order_{request_id}.txt"
+    pdf_filename = f"transfer_order_{request_id}.pdf"
     pdf_path = os.path.join(PDF_DIR, pdf_filename)
-
     now = datetime.now().strftime("%d-%m-%Y")
-    content = f"""
-================================================================================
-                    GOVERNMENT OF TELANGANA
-              DEPARTMENT OF SCHOOL EDUCATION
-                  TRANSFER ORDER
-================================================================================
 
-Order No: SHIXO/TO/{request_id}
-Date: {now}
+    # Colors
+    navy = HexColor('#0B3C5D')
+    teal = HexColor('#328CC1')
+    gold = HexColor('#D4AF37')
+    dark = HexColor('#1a1a1a')
+    gray = HexColor('#555555')
+    light_bg = HexColor('#F5F7FA')
 
-TRANSFER ORDER
+    doc = SimpleDocTemplate(
+        pdf_path, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=1.5*cm, bottomMargin=2*cm
+    )
 
-This is to certify that the following transfer has been approved under the
-Government Teacher Transfer Management System (SHIXO).
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle('GovHeader', parent=styles['Title'], fontSize=16,
+                              textColor=navy, alignment=TA_CENTER, spaceAfter=2))
+    styles.add(ParagraphStyle('GovSubHeader', parent=styles['Normal'], fontSize=11,
+                              textColor=teal, alignment=TA_CENTER, spaceAfter=4))
+    styles.add(ParagraphStyle('OrderTitle', parent=styles['Title'], fontSize=18,
+                              textColor=navy, alignment=TA_CENTER, spaceBefore=8, spaceAfter=4))
+    styles.add(ParagraphStyle('OrderNo', parent=styles['Normal'], fontSize=10,
+                              textColor=gray, alignment=TA_CENTER, spaceAfter=12))
+    styles.add(ParagraphStyle('SectionHead', parent=styles['Heading3'], fontSize=11,
+                              textColor=navy, spaceBefore=14, spaceAfter=6,
+                              borderPadding=(0, 0, 2, 0)))
+    styles.add(ParagraphStyle('FieldLabel', parent=styles['Normal'], fontSize=10,
+                              textColor=gray))
+    styles.add(ParagraphStyle('FieldValue', parent=styles['Normal'], fontSize=10,
+                              textColor=dark, fontName='Helvetica-Bold'))
+    styles.add(ParagraphStyle('BodyText2', parent=styles['Normal'], fontSize=10,
+                              textColor=dark, spaceBefore=6, spaceAfter=6))
+    styles.add(ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8,
+                              textColor=gray, alignment=TA_CENTER))
+    styles.add(ParagraphStyle('SignLabel', parent=styles['Normal'], fontSize=10,
+                              textColor=dark, alignment=TA_CENTER))
+    styles.add(ParagraphStyle('SignName', parent=styles['Normal'], fontSize=10,
+                              textColor=dark, alignment=TA_CENTER, fontName='Helvetica-Bold'))
 
-TEACHER DETAILS:
-─────────────────────────────────────────────────────────
-Name            : {teacher['name']}
-Teacher ID      : {teacher['teacher_id']}
-Subject         : {teacher['subject']}
-Gender          : {teacher['gender']}
-Years of Service: {teacher['years_of_service']}
+    elements = []
 
-TRANSFER DETAILS:
-─────────────────────────────────────────────────────────
-From School     : {old_school['school_name']}
-                  Mandal: {old_school['mandal']}
-                  District: {old_school['district']}
+    # Gold top line
+    elements.append(HRFlowable(width="100%", thickness=3, color=gold, spaceAfter=8))
 
-To School       : {new_school['school_name']}
-                  Mandal: {new_school['mandal']}
-                  District: {new_school['district']}
+    # Government header
+    elements.append(Paragraph("GOVERNMENT OF TELANGANA", styles['GovHeader']))
+    elements.append(Paragraph("Department of School Education", styles['GovSubHeader']))
+    elements.append(Paragraph("SHIXO — AI-Powered Teacher Transfer Management System", styles['GovSubHeader']))
 
-Transfer Reason : {req['transfer_reason']}
-Priority Score  : {req['priority_score']}
-Request Date    : {req['request_date']}
-Approval Date   : {req['approval_date']}
+    elements.append(HRFlowable(width="100%", thickness=1.5, color=navy, spaceBefore=8, spaceAfter=6))
 
-APPROVED BY:
-─────────────────────────────────────────────────────────
-MEO ID          : {req['assigned_meo']}
-Status          : APPROVED
+    # Title
+    elements.append(Paragraph("TRANSFER ORDER", styles['OrderTitle']))
+    elements.append(Paragraph(f"Order No: SHIXO/TO/{request_id}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Date: {now}", styles['OrderNo']))
 
-This order is generated electronically through the SHIXO platform.
-No physical signature is required.
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=teal, spaceAfter=6))
 
-─────────────────────────────────────────────────────────
-                    [OFFICIAL SEAL]
-          Mandal Education Officer
-          Department of School Education
-          Government of Telangana
-================================================================================
-"""
-    with open(pdf_path, "w") as f:
-        f.write(content)
+    # Preamble
+    elements.append(Paragraph(
+        "This is to certify that the following teacher transfer has been reviewed, evaluated, "
+        "and approved under the Government Teacher Transfer Management System (SHIXO).",
+        styles['BodyText2']
+    ))
+
+    # Teacher Details
+    elements.append(Paragraph("TEACHER DETAILS", styles['SectionHead']))
+    teacher_data = [
+        ["Name", teacher['name'], "Teacher ID", teacher['teacher_id']],
+        ["Subject", teacher['subject'], "Gender", teacher['gender']],
+        ["Years of Service", str(teacher['years_of_service']), "Mandal", teacher['mandal']],
+    ]
+    t1 = Table(teacher_data, colWidths=[3.5*cm, 5*cm, 3.5*cm, 5*cm])
+    t1.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (3, 0), (3, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), gray),
+        ('TEXTCOLOR', (2, 0), (2, -1), gray),
+        ('TEXTCOLOR', (1, 0), (1, -1), dark),
+        ('TEXTCOLOR', (3, 0), (3, -1), dark),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), light_bg),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#D9E2EC')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(t1)
+
+    # Transfer Details
+    elements.append(Paragraph("TRANSFER DETAILS", styles['SectionHead']))
+    transfer_data = [
+        ["From School", f"{old_school['school_name']} ({old_school['school_id']})"],
+        ["From Mandal / District", f"{old_school['mandal']}, {old_school['district']}"],
+        ["To School", f"{new_school['school_name']} ({new_school['school_id']})"],
+        ["To Mandal / District", f"{new_school['mandal']}, {new_school['district']}"],
+        ["Transfer Reason", req['transfer_reason']],
+        ["Priority Score", str(req['priority_score'])],
+        ["Request Date", req['request_date']],
+        ["Approval Date", req['approval_date'] or now],
+    ]
+    t2 = Table(transfer_data, colWidths=[4.5*cm, 12.5*cm])
+    t2.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), gray),
+        ('TEXTCOLOR', (1, 0), (1, -1), dark),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), light_bg),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#D9E2EC')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(t2)
+
+    # Approval section
+    elements.append(Paragraph("APPROVAL DETAILS", styles['SectionHead']))
+    meo_name = meo['name'] if meo else 'N/A'
+    meo_mandal = meo['assigned_mandal'] if meo else 'N/A'
+    approval_data = [
+        ["Approved By (MEO)", f"{meo_name} ({req['assigned_meo']})"],
+        ["MEO Mandal", meo_mandal],
+        ["Status", "APPROVED"],
+    ]
+    t3 = Table(approval_data, colWidths=[4.5*cm, 12.5*cm])
+    t3.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), gray),
+        ('TEXTCOLOR', (1, 0), (1, -1), dark),
+        ('TEXTCOLOR', (1, 2), (1, 2), HexColor('#2E8B57')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), light_bg),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#D9E2EC')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(t3)
+
+    elements.append(Spacer(1, 20))
+
+    # Signature section
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=HexColor('#D9E2EC'), spaceAfter=12))
+    sig_data = [
+        ["", ""],
+        ["", ""],
+        ["_________________________", "_________________________"],
+        ["Teacher Acknowledgment", "Mandal Education Officer"],
+        [f"{teacher['name']}", f"{meo_name}"],
+        [f"({teacher['teacher_id']})", f"({req['assigned_meo']})"],
+    ]
+    sig_table = Table(sig_data, colWidths=[8.5*cm, 8.5*cm])
+    sig_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 2), (-1, 2), 'Helvetica'),
+        ('FONTNAME', (0, 3), (-1, 3), 'Helvetica'),
+        ('FONTNAME', (0, 4), (-1, 4), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 5), (-1, 5), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 3), (-1, 3), gray),
+        ('TEXTCOLOR', (0, 4), (-1, 4), dark),
+        ('TEXTCOLOR', (0, 5), (-1, 5), gray),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, 1), 12),
+    ]))
+    elements.append(sig_table)
+
+    elements.append(Spacer(1, 20))
+    elements.append(HRFlowable(width="100%", thickness=2, color=gold, spaceAfter=6))
+
+    # Footer
+    elements.append(Paragraph(
+        "This transfer order has been generated electronically through the SHIXO platform.",
+        styles['Footer']
+    ))
+    elements.append(Paragraph(
+        "Department of School Education | Government of Telangana | SHIXO v2.0",
+        styles['Footer']
+    ))
+
+    doc.build(elements)
 
     conn2 = get_db()
     conn2.execute(
@@ -868,8 +1009,8 @@ def download_pdf(request_id: str):
 
     return FileResponse(
         pdf_path,
-        media_type="text/plain",
-        filename=f"transfer_order_{request_id}.txt"
+        media_type="application/pdf",
+        filename=f"transfer_order_{request_id}.pdf"
     )
 
 
