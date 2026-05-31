@@ -1,32 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0B3C5D;
-  --color-navy-light: #154872;
-  --color-teal: #328CC1;
-  --color-teal-light: #4CA3D8;
-  --color-soft-white: #F5F7FA;
-  --color-light-gray: #D9E2EC;
-  --color-success: #2E8B57;
-  --color-alert: #C0392B;
-  --color-gold: #D4AF37;
+  /* Brand palette — premium GovTech */
+  --color-navy: #081D3A;          /* Primary Navy */
+  --color-navy-light: #153E90;    /* Secondary Blue */
+  --color-navy-deep: #050F22;     /* Deep navy for gradients */
+  --color-teal: #2563EB;          /* Accent Blue (primary action / active) */
+  --color-teal-light: #3B82F6;    /* Accent hover */
+  --color-soft-white: #F5F7FF;    /* App background */
+  --color-light-gray: #E2E8F0;    /* Border */
+  --color-success: #16A34A;       /* Success */
+  --color-alert: #DC2626;         /* Danger */
+  --color-gold: #F59E0B;          /* Warning / pending accent */
+  --color-ink: #0F172A;           /* Text primary */
+  --color-muted: #64748B;         /* Text secondary */
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Poppins', 'Inter', system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-soft: 0 8px 30px rgba(15, 23, 42, 0.08);
+  --shadow-lift: 0 18px 45px rgba(8, 29, 58, 0.18);
 }
 
 * { box-sizing: border-box; }
 
+html { scroll-behavior: smooth; }
+
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background-color: #F5F7FA;
-  color: #1a202c;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background-color: #F5F7FF;
+  color: #0F172A;
   font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
+
+h1, h2, h3, h4, h5 { font-family: 'Poppins', 'Inter', sans-serif; letter-spacing: -0.02em; }
 
 #root {
   width: 100%;
   min-height: 100vh;
 }
 
-.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #328CC1; border-radius: 3px; }
+/* Scrollbars */
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Reusable elevation helpers */
+.shadow-card { box-shadow: var(--shadow-card); }
+.shadow-soft { box-shadow: var(--shadow-soft); }
+.shadow-lift { box-shadow: var(--shadow-lift); }
+
+/* Soft entrance animation for cards/sections */
+@keyframes shixo-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: shixo-fade-up 0.5s ease both; }
+
+/* Subtle grid/dot background for hero */
+.hero-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(37, 99, 235, 0.10) 1px, transparent 0);
+  background-size: 26px 26px;
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(90deg, #153E90 0%, #2563EB 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

@@ -199,22 +199,33 @@ export default function TeacherDashboard({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-soft-white flex">
       {/* Sidebar */}
-      <aside className={`bg-navy text-white flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-56' : 'w-16'}`}>
+      <aside className={`relative bg-gradient-to-b from-navy to-navy-deep text-white flex-shrink-0 transition-all duration-300 shadow-xl ${sidebarOpen ? 'w-60' : 'w-16'}`}>
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          {sidebarOpen && <span className="font-bold text-sm">SHIXO</span>}
+          {sidebarOpen && (
+            <div className="flex items-center gap-2.5">
+              <span className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20">
+                <img src="/favicon2.jpeg" alt="SHIXO" className="h-full w-full object-contain p-0.5" />
+              </span>
+              <div>
+                <p className="font-extrabold text-sm leading-none">SHIXO</p>
+                <p className="text-[9px] text-light-gray mt-0.5">Teacher Portal</p>
+              </div>
+            </div>
+          )}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-light-gray hover:text-white p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
-        <nav className="py-4 space-y-1 px-2">
+        {sidebarOpen && <p className="px-5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-light-gray/60">Menu</p>}
+        <nav className="py-2 space-y-1 px-2">
           {tabs.map(t => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                activeTab === t ? 'bg-teal text-white' : 'text-light-gray hover:bg-white/5'
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                activeTab === t ? 'bg-teal text-white shadow-sm' : 'text-light-gray hover:bg-white/10 hover:text-white'
               }`}
             >
               {t === 'Dashboard' && <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg>}
@@ -246,14 +257,23 @@ export default function TeacherDashboard({ user, onLogout }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
-        <header className="bg-white border-b border-light-gray px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-light-gray px-6 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-navy">Teacher Dashboard</h1>
-            <p className="text-xs text-gray-500">Welcome, {user.name}</p>
+            <h1 className="text-lg font-extrabold text-navy">Teacher Dashboard</h1>
+            <p className="text-xs text-muted">Welcome back, {user.name}</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs bg-teal/10 text-teal px-3 py-1 rounded-full font-medium">{user.user_id}</span>
-            <span className="text-xs bg-navy/10 text-navy px-3 py-1 rounded-full font-medium">{user.mandal}</span>
+            <button onClick={() => setActiveTab('Notifications')} className="relative w-9 h-9 rounded-xl border border-light-gray text-muted hover:text-navy hover:border-teal transition-colors flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M14.857 17.082a23.8 23.8 0 005.454-1.31A8.97 8.97 0 0118 9.75V9A6 6 0 006 9v.75a8.97 8.97 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24 24 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-alert text-white text-[10px] rounded-full h-4 min-w-4 px-1 flex items-center justify-center">{unreadCount}</span>}
+            </button>
+            <div className="flex items-center gap-2 pl-3 border-l border-light-gray">
+              <span className="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-bold text-sm">{user.name?.charAt(0)}</span>
+              <div className="hidden sm:block">
+                <p className="text-xs font-semibold text-navy leading-none">{user.user_id}</p>
+                <p className="text-[10px] text-muted mt-0.5">{user.mandal}</p>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -263,7 +283,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div className="space-y-6">
               {/* Profile & School Cards */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Profile Information</h3>
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-14 h-14 bg-navy rounded-full flex items-center justify-center text-white font-bold text-xl">
@@ -283,7 +303,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <div><span className="text-gray-400">Transfer:</span> <span className="font-medium">{profile.transfer_status}</span></div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Current School</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between"><span className="text-gray-400">School:</span><span className="font-medium text-right max-w-[200px]">{profile.school_name}</span></div>
@@ -297,19 +317,19 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-4 text-center">
                   <p className="text-2xl font-bold text-navy">{profile.years_of_service}</p>
                   <p className="text-xs text-gray-500">Years of Service</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-4 text-center">
                   <p className="text-2xl font-bold text-teal">{profile.rural_service_years}</p>
                   <p className="text-xs text-gray-500">Rural Service Years</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-4 text-center">
                   <p className="text-2xl font-bold text-gold">{profile.spouse_distance} km</p>
                   <p className="text-xs text-gray-500">Spouse Distance</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-4 text-center">
                   <p className={`text-2xl font-bold ${profile.medical_condition ? 'text-alert' : 'text-success'}`}>
                     {profile.medical_condition ? 'Yes' : 'No'}
                   </p>
@@ -318,7 +338,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
 
               {/* Predict Button */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">AI Transfer Eligibility</h3>
                   <button
@@ -367,7 +387,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                             <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} />
                             <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
                             <Tooltip />
-                            <Bar dataKey="value" fill="#328CC1" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="value" fill="#2563EB" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -382,7 +402,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {activeTab === 'Transfer' && (
             <div className="space-y-6">
               {/* Recommend Schools */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Recommended Schools</h3>
                   <button
@@ -440,7 +460,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
 
               {/* Apply Form */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Apply for Transfer</h3>
                 <form onSubmit={handleApply} className="space-y-4">
                   <div>
@@ -486,7 +506,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
           {/* History Tab */}
           {activeTab === 'History' && (
-            <div className="bg-white rounded-xl border border-light-gray p-6">
+            <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Transfer History</h3>
               {history.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">No transfer requests yet.</p>
@@ -554,7 +574,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {activeTab === 'Appeals' && (
             <div className="space-y-6">
               {/* Reapply Eligibility Status */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Re-Apply Eligibility</h3>
                   <button onClick={refreshAppeals} className="text-xs text-teal hover:underline">Refresh Status</button>
@@ -602,7 +622,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Appeal Submission Form */}
               {reapplyEligibility?.has_rejected_requests && (
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Submit Transfer Appeal</h3>
                   <form onSubmit={handleSubmitAppeal} className="space-y-4">
                     <div>
@@ -677,7 +697,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Re-Apply Form */}
               {(reapplyEligibility?.eligible || reapplyEligibility?.can_bypass_waiting) && (
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Re-Apply for Transfer</h3>
                   {reapplyEligibility?.can_bypass_waiting && (
                     <div className="bg-gold/5 border border-gold/20 rounded-lg p-3 mb-4">
@@ -727,7 +747,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               )}
 
               {/* Appeals History */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Appeal History</h3>
                 {appeals.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-6">No appeals submitted yet.</p>
@@ -772,7 +792,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
           {/* Notifications Tab */}
           {activeTab === 'Notifications' && (
-            <div className="bg-white rounded-xl border border-light-gray p-6">
+            <div className="bg-white rounded-2xl border border-light-gray shadow-card p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Notification Center</h3>
               {notifications.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">No notifications yet.</p>
