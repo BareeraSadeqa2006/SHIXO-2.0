@@ -37,9 +37,9 @@ export default function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy via-navy-light to-teal flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-teal via-teal-light to-navy flex flex-col">
       {/* Top bar */}
-      <div className="bg-navy/50 backdrop-blur-sm border-b border-white/10">
+      <div className="bg-black/10 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src="/favicon2.jpeg" alt="SHIXO Logo" className="w-8 h-8 rounded object-cover shadow-md" />
@@ -51,12 +51,12 @@ export default function LoginPage({ onLogin }) {
 
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="bg-navy px-8 py-6 text-center">
+            <div className="bg-gradient-to-br from-teal to-teal-light px-8 py-7 text-center">
               <img src="/favicon2.jpeg" alt="SHIXO Logo" className="w-14 h-14 rounded-xl object-cover mx-auto mb-3 shadow-lg" />
               <h2 className="text-xl font-bold text-white">SHIXO Portal Login</h2>
-              <p className="text-sm text-light-gray mt-1">Government Teacher Management System</p>
+              <p className="text-sm text-white/80 mt-1">Government Teacher Management System</p>
             </div>
 
             <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
@@ -124,7 +124,7 @@ export default function LoginPage({ onLogin }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-navy hover:bg-navy-light text-white py-3 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+                className="w-full bg-teal hover:bg-teal-light text-white py-3 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 shadow-[0_8px_20px_-8px_rgba(15,157,148,0.6)]"
               >
                 {loading ? 'Authenticating...' : 'Login to Portal'}
               </button>
