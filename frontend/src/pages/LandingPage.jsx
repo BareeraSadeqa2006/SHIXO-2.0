@@ -1,5 +1,19 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import HeroVisual from '../components/HeroVisual';
+
+const sparkles = [
+  { top: '12%', left: '8%', size: 6, delay: '0s' },
+  { top: '22%', left: '46%', size: 4, delay: '1.1s' },
+  { top: '8%', left: '70%', size: 5, delay: '2s' },
+  { top: '38%', left: '18%', size: 4, delay: '0.6s' },
+  { top: '60%', left: '6%', size: 5, delay: '1.6s' },
+  { top: '70%', left: '40%', size: 4, delay: '2.4s' },
+  { top: '30%', left: '88%', size: 6, delay: '0.9s' },
+  { top: '78%', left: '82%', size: 4, delay: '1.9s' },
+  { top: '52%', left: '62%', size: 5, delay: '3s' },
+  { top: '16%', left: '30%', size: 3, delay: '2.7s' },
+];
 
 const features = [
   {
@@ -209,12 +223,12 @@ export default function LandingPage() {
               </div>
             </a>
             <nav className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-semibold text-navy hover:text-teal transition-colors duration-200">Features</a>
-              <a href="#analytics" className="text-sm font-semibold text-navy hover:text-teal transition-colors duration-200">Analytics</a>
-              <a href="#about" className="text-sm font-semibold text-navy hover:text-teal transition-colors duration-200">About</a>
+              <a href="#features" className="nav-link text-sm font-semibold text-navy">Features</a>
+              <a href="#analytics" className="nav-link text-sm font-semibold text-navy">Analytics</a>
+              <a href="#about" className="nav-link text-sm font-semibold text-navy">About</a>
               <Link
                 to="/login"
-                className="bg-teal hover:bg-teal-light text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-[0_6px_16px_-6px_rgba(15,157,148,0.6)] hover:shadow-[0_10px_22px_-8px_rgba(15,157,148,0.7)] active:bg-teal-light"
+                className="bg-teal hover:bg-teal-light text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-[0_6px_16px_-6px_rgba(15,157,148,0.6)] hover:shadow-[0_10px_22px_-8px_rgba(15,157,148,0.7)] hover:scale-[1.03] active:scale-[0.97]"
               >
                 Login Portal
               </Link>
@@ -229,6 +243,21 @@ export default function LandingPage() {
       {/* Hero */}
       <section id="top" className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-light-teal/40 via-white to-soft-white" />
+        {/* Ambient gradient glows */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-[34rem] h-[34rem] rounded-full bg-teal/10 blur-3xl" />
+          <div className="absolute top-10 right-0 w-[30rem] h-[30rem] rounded-full bg-mint/20 blur-3xl" />
+        </div>
+        {/* Soft sparkling particles */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          {sparkles.map((s, i) => (
+            <span
+              key={i}
+              className="sparkle absolute rounded-full bg-teal"
+              style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
+            />
+          ))}
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16 lg:pt-20 lg:pb-24">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
@@ -247,28 +276,20 @@ export default function LandingPage() {
               <div className="hero-fade hero-fade-4 flex flex-wrap gap-4">
                 <Link
                   to="/login"
-                  className="bg-teal hover:bg-teal-light text-white px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-[0_10px_24px_-8px_rgba(15,157,148,0.6)] hover:shadow-[0_14px_30px_-10px_rgba(15,157,148,0.7)] hover:-translate-y-0.5"
+                  className="bg-teal hover:bg-teal-light text-white px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-[0_10px_24px_-8px_rgba(15,157,148,0.6)] hover:shadow-[0_14px_30px_-10px_rgba(15,157,148,0.7)] hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.97]"
                 >
                   Access Portal
                 </Link>
                 <a
                   href="#features"
-                  className="bg-white border border-light-gray text-navy hover:border-teal hover:text-teal px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm"
+                  className="bg-white border border-light-gray text-navy hover:border-teal hover:text-teal px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.97]"
                 >
                   Explore Features
                 </a>
               </div>
             </div>
             <div className="relative flex justify-center items-center">
-              {/* Soft glow behind image — not a card/container */}
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10">
-                <div className="w-[80%] h-[80%] rounded-full bg-mint/40 blur-3xl" />
-              </div>
-              <img
-                src="/teacher-hero-cutout.png"
-                alt="Female teacher with a book, India map and government building illustration"
-                className="w-full max-w-md h-auto object-contain drop-shadow-[0_18px_30px_rgba(15,23,42,0.10)]"
-              />
+              <HeroVisual />
             </div>
           </div>
         </div>
@@ -294,7 +315,8 @@ export default function LandingPage() {
       </section>
 
       {/* About */}
-      <section id="about" className="py-20 lg:py-24">
+      <section id="about" className="relative overflow-hidden py-20 lg:py-24">
+        <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 w-[40rem] h-[28rem] rounded-full bg-light-teal/40 blur-3xl -z-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="reveal max-w-2xl mx-auto text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-teal mb-3">Why SHIXO</span>
@@ -321,8 +343,10 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-20 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="relative overflow-hidden py-20 lg:py-24 bg-white">
+        <div className="pointer-events-none absolute top-1/4 -right-24 w-[34rem] h-[34rem] rounded-full bg-mint/20 blur-3xl -z-0" />
+        <div className="pointer-events-none absolute bottom-0 -left-24 w-[30rem] h-[30rem] rounded-full bg-light-teal/30 blur-3xl -z-0" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="reveal text-center mb-14">
             <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-teal mb-3">Platform Capabilities</span>
             <h3 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4">Everything you need to manage a workforce</h3>
@@ -348,7 +372,8 @@ export default function LandingPage() {
       </section>
 
       {/* Analytics / AI */}
-      <section id="analytics" className="py-20 lg:py-24">
+      <section id="analytics" className="relative overflow-hidden py-20 lg:py-24">
+        <div className="pointer-events-none absolute top-1/3 left-0 w-[32rem] h-[32rem] rounded-full bg-teal/10 blur-3xl -z-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="reveal">
