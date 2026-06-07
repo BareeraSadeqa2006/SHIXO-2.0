@@ -7,7 +7,7 @@ import {
 } from '../api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#0B3C5D', '#328CC1', '#2E8B57', '#D4AF37', '#C0392B', '#154872'];
+const COLORS = ['#0F9D94', '#14B8A6', '#10B981', '#F59E0B', '#EF4444', '#0F172A'];
 const tabs = ['Dashboard', 'Transfer', 'History', 'Appeals', 'Notifications'];
 
 const APPEAL_TYPES = [
@@ -263,7 +263,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div className="space-y-6">
               {/* Profile & School Cards */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Profile Information</h3>
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-14 h-14 bg-navy rounded-full flex items-center justify-center text-white font-bold text-xl">
@@ -283,7 +283,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <div><span className="text-gray-400">Transfer:</span> <span className="font-medium">{profile.transfer_status}</span></div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Current School</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between"><span className="text-gray-400">School:</span><span className="font-medium text-right max-w-[200px]">{profile.school_name}</span></div>
@@ -297,23 +297,23 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-navy">{profile.years_of_service}</p>
                   <p className="text-xs text-gray-500">Years of Service</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-teal">{profile.years_in_current_school ?? 0}</p>
                   <p className="text-xs text-gray-500">Years in Current School</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-gold">{profile.rural_service_years}</p>
                   <p className="text-xs text-gray-500">Rural Service Years</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-gold">{profile.spouse_distance} km</p>
                   <p className="text-xs text-gray-500">Spouse Distance</p>
                 </div>
-                <div className="bg-white rounded-xl border border-light-gray p-4 text-center">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className={`text-2xl font-bold ${profile.medical_condition ? 'text-alert' : 'text-success'}`}>
                     {profile.medical_condition ? 'Yes' : 'No'}
                   </p>
@@ -322,7 +322,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
 
               {/* Predict Button */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">AI Transfer Eligibility</h3>
                   <button
@@ -371,7 +371,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                             <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} />
                             <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
                             <Tooltip />
-                            <Bar dataKey="value" fill="#328CC1" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="value" fill="#0F9D94" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -386,7 +386,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {activeTab === 'Transfer' && (
             <div className="space-y-6">
               {/* Recommend Schools */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Recommended Schools</h3>
                   <button
@@ -444,7 +444,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
 
               {/* Apply Form */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Apply for Transfer</h3>
                 <form onSubmit={handleApply} className="space-y-4">
                   <div>
@@ -490,7 +490,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
           {/* History Tab */}
           {activeTab === 'History' && (
-            <div className="bg-white rounded-xl border border-light-gray p-6">
+            <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Transfer History</h3>
               {history.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">No transfer requests yet.</p>
@@ -563,7 +563,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {activeTab === 'Appeals' && (
             <div className="space-y-6">
               {/* Reapply Eligibility Status */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Re-Apply Eligibility</h3>
                   <button onClick={refreshAppeals} className="text-xs text-teal hover:underline">Refresh Status</button>
@@ -611,7 +611,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Appeal Submission Form */}
               {reapplyEligibility?.has_rejected_requests && (
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Submit Transfer Appeal</h3>
                   <form onSubmit={handleSubmitAppeal} className="space-y-4">
                     <div>
@@ -686,7 +686,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
               {/* Re-Apply Form */}
               {(reapplyEligibility?.eligible || reapplyEligibility?.can_bypass_waiting) && (
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Re-Apply for Transfer</h3>
                   {reapplyEligibility?.can_bypass_waiting && (
                     <div className="bg-gold/5 border border-gold/20 rounded-lg p-3 mb-4">
@@ -736,7 +736,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               )}
 
               {/* Appeals History */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Appeal History</h3>
                 {appeals.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-6">No appeals submitted yet.</p>
@@ -781,7 +781,7 @@ export default function TeacherDashboard({ user, onLogout }) {
 
           {/* Notifications Tab */}
           {activeTab === 'Notifications' && (
-            <div className="bg-white rounded-xl border border-light-gray p-6">
+            <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Notification Center</h3>
               {notifications.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">No notifications yet.</p>

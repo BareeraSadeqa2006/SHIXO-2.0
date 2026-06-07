@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 
-const COLORS = ['#0B3C5D', '#328CC1', '#2E8B57', '#D4AF37', '#C0392B', '#154872', '#4CA3D8', '#8B5CF6'];
+const COLORS = ['#0F9D94', '#14B8A6', '#10B981', '#F59E0B', '#EF4444', '#0F172A', '#99F6E4', '#8B5CF6'];
 const REJECT_REASONS = [
   'No vacancy available at requested school',
   'Current school has teacher shortage',
@@ -112,9 +112,9 @@ export default function MEODashboard({ user, onLogout }) {
 
   const subjectData = Object.entries(data.subject_distribution || {}).map(([k, v]) => ({ name: k, value: v }));
   const schoolStatusData = [
-    { name: 'Shortage', value: data.shortage_schools, color: '#C0392B' },
-    { name: 'Surplus', value: data.surplus_schools, color: '#2E8B57' },
-    { name: 'Balanced', value: data.total_schools - data.shortage_schools - data.surplus_schools, color: '#328CC1' },
+    { name: 'Shortage', value: data.shortage_schools, color: '#EF4444' },
+    { name: 'Surplus', value: data.surplus_schools, color: '#10B981' },
+    { name: 'Balanced', value: data.total_schools - data.shortage_schools - data.surplus_schools, color: '#0F9D94' },
   ];
 
   return (
@@ -192,7 +192,7 @@ export default function MEODashboard({ user, onLogout }) {
                   { label: 'Shortage Schools', value: data.shortage_schools, color: 'text-alert', bg: 'bg-alert/5' },
                   { label: 'Pending Requests', value: data.pending_requests?.length || 0, color: 'text-gold', bg: 'bg-gold/5' },
                 ].map((s) => (
-                  <div key={s.label} className={`${s.bg} rounded-xl border border-light-gray p-5`}>
+                  <div key={s.label} className={`${s.bg} rounded-2xl border border-light-gray shadow-sm p-5`}>
                     <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
                     <p className="text-xs text-gray-500 mt-1">{s.label}</p>
                   </div>
@@ -201,7 +201,7 @@ export default function MEODashboard({ user, onLogout }) {
 
               <div className="grid md:grid-cols-2 gap-6">
                 {/* School status pie */}
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">School Status Distribution</h3>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
@@ -219,7 +219,7 @@ export default function MEODashboard({ user, onLogout }) {
                 </div>
 
                 {/* Subject dist bar */}
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Subject-wise Teacher Distribution</h3>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
@@ -227,7 +227,7 @@ export default function MEODashboard({ user, onLogout }) {
                         <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
                         <YAxis tick={{ fontSize: 11 }} />
                         <Tooltip />
-                        <Bar dataKey="value" fill="#328CC1" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="value" fill="#0F9D94" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -250,7 +250,7 @@ export default function MEODashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-light-gray p-5">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-5">
                 <p className="text-sm text-gray-500"><span className="font-semibold text-navy">Avg Student-Teacher Ratio:</span> {data.avg_student_teacher_ratio}</p>
               </div>
             </div>
@@ -260,7 +260,7 @@ export default function MEODashboard({ user, onLogout }) {
           {activeTab === 'Requests' && (
             <div className="space-y-6">
               {/* Pending */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                   Pending Transfer Requests ({data.pending_requests?.length || 0})
                 </h3>
@@ -321,7 +321,7 @@ export default function MEODashboard({ user, onLogout }) {
 
               {/* Approved/Rejected */}
               {['approved_requests', 'rejected_requests'].map((key) => (
-                <div key={key} className="bg-white rounded-xl border border-light-gray p-6">
+                <div key={key} className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                     {key === 'approved_requests' ? 'Approved' : 'Rejected'} Requests ({data[key]?.length || 0})
                   </h3>
@@ -364,7 +364,7 @@ export default function MEODashboard({ user, onLogout }) {
           {activeTab === 'Appeals' && (
             <div className="space-y-6">
               {/* Pending Appeals */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                   Pending Appeals ({appealsData?.pending_appeals?.length || 0})
                 </h3>
@@ -426,7 +426,7 @@ export default function MEODashboard({ user, onLogout }) {
               </div>
 
               {/* Reviewed Appeals */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                   Reviewed Appeals ({appealsData?.reviewed_appeals?.length || 0})
                 </h3>
@@ -472,7 +472,7 @@ export default function MEODashboard({ user, onLogout }) {
 
           {/* Schools */}
           {activeTab === 'Schools' && (
-            <div className="bg-white rounded-xl border border-light-gray p-6">
+            <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                 Schools in {data.mandal} ({data.schools?.length || 0})
               </h3>
@@ -521,7 +521,7 @@ export default function MEODashboard({ user, onLogout }) {
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Student-Teacher ratio distribution */}
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Student-Teacher Ratio by School</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
@@ -531,14 +531,14 @@ export default function MEODashboard({ user, onLogout }) {
                         <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" height={50} />
                         <YAxis tick={{ fontSize: 11 }} />
                         <Tooltip />
-                        <Bar dataKey="ratio" fill="#0B3C5D" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="ratio" fill="#14B8A6" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
                 {/* Teacher distribution */}
-                <div className="bg-white rounded-xl border border-light-gray p-6">
+                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Subject Distribution</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
@@ -557,7 +557,7 @@ export default function MEODashboard({ user, onLogout }) {
               </div>
 
               {/* Shortage/Surplus table */}
-              <div className="bg-white rounded-xl border border-light-gray p-6">
+              <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Shortage & Surplus Analysis</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
