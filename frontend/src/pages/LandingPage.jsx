@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
-import HeroVisual from '../components/HeroVisual';
+import { useEffect, useState } from 'react';
 
 const sparkles = [
   { top: '12%', left: '8%', size: 6, delay: '0s' },
@@ -112,13 +111,6 @@ const aboutHighlights = [
   },
 ];
 
-const stats = [
-  { end: 500, suffix: '+', label: 'Schools Managed' },
-  { end: 10000, suffix: '+', label: 'Teachers Tracked' },
-  { end: 20, suffix: '', label: 'Mandals Covered' },
-  { end: 95, suffix: '%+', label: 'AI Accuracy' },
-];
-
 const priorityScores = [
   { label: 'Transfer Request Filed', score: '+30' },
   { label: 'Medical Condition', score: '+25' },
@@ -157,41 +149,6 @@ function useScrollReveal() {
     els.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
-}
-
-function Counter({ end, suffix = '', duration = 1400 }) {
-  const [value, setValue] = useState(0);
-  const ref = useRef(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const run = () => {
-      if (started.current) return;
-      started.current = true;
-      const startTime = performance.now();
-      const tick = (now) => {
-        const progress = Math.min((now - startTime) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        setValue(Math.round(end * eased));
-        if (progress < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
-    if (!('IntersectionObserver' in window)) {
-      run();
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && run()),
-      { threshold: 0.4 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [end, duration]);
-
-  return <span ref={ref}>{value.toLocaleString()}{suffix}</span>;
 }
 
 export default function LandingPage() {
@@ -241,15 +198,22 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section id="top" className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-light-teal/40 via-white to-soft-white" />
-        {/* Ambient gradient glows */}
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-[34rem] h-[34rem] rounded-full bg-teal/10 blur-3xl" />
-          <div className="absolute top-10 right-0 w-[30rem] h-[30rem] rounded-full bg-mint/20 blur-3xl" />
-        </div>
+      <section id="top" className="relative overflow-hidden bg-soft-white">
+        {/* Accessible heading (visible copy lives in the hero artwork) */}
+        <h2 className="sr-only">
+          Smart Teacher Transfer &amp; Workforce Analytics Platform — transparent,
+          data-driven governance for managing government teacher transfers, workforce
+          allocation, and education workforce monitoring across districts and mandals.
+        </h2>
+        {/* Hero artwork (static) */}
+        <img
+          src="/hero-shixo.jpg"
+          alt="A teacher viewing a glowing digital network map of India above a valley of government schools"
+          className="block w-full h-auto select-none"
+          draggable="false"
+        />
         {/* Soft sparkling particles */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="pointer-events-none absolute inset-0">
           {sparkles.map((s, i) => (
             <span
               key={i}
@@ -258,60 +222,19 @@ export default function LandingPage() {
             />
           ))}
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16 lg:pt-20 lg:pb-24">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
-            <div>
-              <div className="hero-fade hero-fade-1 inline-flex items-center gap-2 bg-white border border-light-gray rounded-full px-4 py-1.5 mb-6 shadow-sm">
-                <span className="w-2 h-2 bg-teal rounded-full"></span>
-                <span className="text-xs font-semibold text-slate tracking-wide">AI-Powered Governance Platform</span>
-              </div>
-              <h2 className="hero-fade hero-fade-2 text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] mb-6 text-navy">
-                Smart Teacher Transfer &{' '}
-                <span className="text-teal">Workforce Analytics</span> Platform
-              </h2>
-              <p className="hero-fade hero-fade-3 text-lg text-slate mb-8 max-w-xl leading-relaxed">
-                Transparent, data-driven governance for managing government teacher transfers,
-                workforce allocation, and education workforce monitoring across districts and mandals.
-              </p>
-              <div className="hero-fade hero-fade-4 flex flex-wrap gap-4">
-                <Link
-                  to="/login"
-                  className="bg-teal hover:bg-teal-light text-white px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-[0_10px_24px_-8px_rgba(15,157,148,0.6)] hover:shadow-[0_14px_30px_-10px_rgba(15,157,148,0.7)] hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.97]"
-                >
-                  Access Portal
-                </Link>
-                <a
-                  href="#features"
-                  className="bg-white border border-light-gray text-navy hover:border-teal hover:text-teal px-8 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.97]"
-                >
-                  Explore Features
-                </a>
-              </div>
-            </div>
-            <div className="relative flex justify-center items-center">
-              <HeroVisual />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics */}
-      <section className="py-16 bg-white border-y border-light-gray">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="reveal-stagger grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {stats.map((s) => (
-              <div
-                key={s.label}
-                className="premium-card bg-white rounded-2xl border border-light-gray p-7 text-center shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
-              >
-                <div className="text-4xl lg:text-5xl font-extrabold text-teal tracking-tight">
-                  <Counter end={s.end} suffix={s.suffix} />
-                </div>
-                <div className="text-sm font-medium text-slate mt-2">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Clickable hotspots aligned to the artwork's call-to-action buttons */}
+        <Link
+          to="/login"
+          aria-label="Access Portal — sign in to SHIXO"
+          className="absolute rounded-xl ring-0 ring-teal hover:ring-2 focus-visible:ring-2 focus-visible:outline-none transition"
+          style={{ left: '5.2%', top: '68.6%', width: '12.4%', height: '6.4%' }}
+        />
+        <a
+          href="#features"
+          aria-label="Explore Features"
+          className="absolute rounded-xl ring-0 ring-teal hover:ring-2 focus-visible:ring-2 focus-visible:outline-none transition"
+          style={{ left: '18.4%', top: '68.6%', width: '12.4%', height: '6.4%' }}
+        />
       </section>
 
       {/* About */}
