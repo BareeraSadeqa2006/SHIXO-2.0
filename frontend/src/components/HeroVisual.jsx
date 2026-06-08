@@ -49,69 +49,9 @@ export default function HeroVisual() {
         <div className="absolute right-[14%] bottom-[16%] h-1/2 w-1/2 rounded-full bg-mint/30 blur-3xl" />
       </div>
 
-      <svg
-        viewBox="0 0 1024 1024"
-        className="w-full h-full overflow-visible"
-        role="img"
-        aria-label="Digital India teacher workforce network map"
-      >
-        <defs>
-          <linearGradient id="indiaFill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#CCFBF1" />
-            <stop offset="50%" stopColor="#5EEAD4" />
-            <stop offset="100%" stopColor="#0F9D94" />
-          </linearGradient>
-          <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#0F9D94" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#0F9D94" stopOpacity="0" />
-          </radialGradient>
-          <filter id="mapShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="26" stdDeviation="34" floodColor="#0F9D94" floodOpacity="0.28" />
-          </filter>
-          <pattern id="netDots" width="30" height="30" patternUnits="userSpaceOnUse">
-            <circle cx="3" cy="3" r="2" fill="#0F766E" opacity="0.22" />
-          </pattern>
-          <clipPath id="indiaClip">
-            <g transform="translate(0,1024) scale(0.1,-0.1)">
-              <path d={INDIA_PATH} />
-            </g>
-          </clipPath>
-        </defs>
+      {/* Redundant SVG Map removed to favor the map already present in the background artwork image */}
 
-        {/* Filled India */}
-        <g transform="translate(0,1024) scale(0.1,-0.1)">
-          <path d={INDIA_PATH} fill="url(#indiaFill)" stroke="#0F9D94" strokeWidth="14" filter="url(#mapShadow)" />
-        </g>
-
-        {/* Digital dot texture, clipped to India */}
-        <rect width="1024" height="1024" fill="url(#netDots)" clipPath="url(#indiaClip)" />
-
-        {/* Network links */}
-        <g stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round" opacity="0.5">
-          {LINKS.map(([a, b], i) => (
-            <line key={i} x1={NODES[a].x} y1={NODES[a].y} x2={NODES[b].x} y2={NODES[b].y} />
-          ))}
-        </g>
-
-        {/* Nodes with pulsing halo */}
-        {NODES.map((n, i) => (
-          <g key={i}>
-            <circle cx={n.x} cy={n.y} r="22" fill="url(#nodeGlow)" />
-            <circle
-              cx={n.x}
-              cy={n.y}
-              r="9"
-              fill="#0F9D94"
-              stroke="#ffffff"
-              strokeWidth="3"
-              className="hv-halo"
-              style={{ animationDelay: `${i * 0.35}s` }}
-            />
-          </g>
-        ))}
-      </svg>
-
-      {/* Floating stat cards (no wrapper around the artwork itself) */}
+      {/* Dynamic Floating metric cards */}
       <div
         className={`float-card absolute -left-2 top-6 sm:left-0 sm:top-10 transition-all duration-700 ${
           shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
