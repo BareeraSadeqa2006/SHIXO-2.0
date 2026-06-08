@@ -192,7 +192,6 @@ export default function TeacherDashboard({ user, onLogout }) {
     { name: 'Medical', value: prediction.details.medical_condition ? 25 : 0 },
     { name: 'Service >= 5yr', value: prediction.details.years_of_service >= 5 ? 20 : 0 },
     { name: 'Spouse > 200km', value: prediction.details.spouse_distance > 200 ? 20 : 0 },
-    { name: 'Rural >= 3yr', value: prediction.details.rural_service_years >= 3 ? 15 : 0 },
     { name: 'Promotion Due', value: prediction.details.promotion_due ? 10 : 0 },
   ].filter(d => d.value > 0) : [];
 
@@ -278,7 +277,8 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <div><span className="text-gray-400">ID:</span> <span className="font-medium">{profile.teacher_id}</span></div>
                     <div><span className="text-gray-400">Gender:</span> <span className="font-medium">{profile.gender}</span></div>
                     <div><span className="text-gray-400">Service:</span> <span className="font-medium">{profile.years_of_service} years</span></div>
-                    <div><span className="text-gray-400">Rural:</span> <span className="font-medium">{profile.rural_service_years} years</span></div>
+                    <div><span className="text-gray-400">Appointed:</span> <span className="font-medium">{profile.date_of_first_appointment || 'N/A'}</span></div>
+                    <div><span className="text-gray-400">Joined School:</span> <span className="font-medium">{profile.date_joined_current_school || 'N/A'}</span></div>
                     <div><span className="text-gray-400">Status:</span> <span className={`font-medium ${profile.current_status === 'Active' ? 'text-success' : 'text-gold'}`}>{profile.current_status}</span></div>
                     <div><span className="text-gray-400">Transfer:</span> <span className="font-medium">{profile.transfer_status}</span></div>
                   </div>
@@ -296,7 +296,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-navy">{profile.years_of_service}</p>
                   <p className="text-xs text-gray-500">Years of Service</p>
@@ -304,10 +304,6 @@ export default function TeacherDashboard({ user, onLogout }) {
                 <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-teal">{profile.years_in_current_school ?? 0}</p>
                   <p className="text-xs text-gray-500">Years in Current School</p>
-                </div>
-                <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold text-gold">{profile.rural_service_years}</p>
-                  <p className="text-xs text-gray-500">Rural Service Years</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-4 text-center">
                   <p className="text-2xl font-bold text-gold">{profile.spouse_distance} km</p>
@@ -399,46 +395,86 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
 
                 {recommendations.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-soft-white">
-                          <th className="text-left p-3 font-medium text-gray-500">School</th>
-                          <th className="text-left p-3 font-medium text-gray-500">Mandal</th>
-                          <th className="text-center p-3 font-medium text-gray-500">Shortage</th>
-                          <th className="text-center p-3 font-medium text-gray-500">Ratio</th>
-                          <th className="text-center p-3 font-medium text-gray-500">Score</th>
-                          <th className="text-center p-3 font-medium text-gray-500">Select</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recommendations.map((s) => (
-                          <tr key={s.school_id} className="border-t border-light-gray hover:bg-soft-white">
-                            <td className="p-3 font-medium">{s.school_name}</td>
-                            <td className="p-3 text-gray-500">{s.mandal}</td>
-                            <td className="p-3 text-center">
-                              <span className="text-alert font-medium">{s.shortage}</span>
-                            </td>
-                            <td className="p-3 text-center">{s.student_teacher_ratio}</td>
-                            <td className="p-3 text-center">
-                              <span className="text-teal font-bold">{s.allocation_score}</span>
-                            </td>
-                            <td className="p-3 text-center">
-                              <button
-                                onClick={() => setSelectedSchool(s.school_id)}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                  selectedSchool === s.school_id
-                                    ? 'bg-teal text-white'
-                                    : 'bg-light-gray text-navy hover:bg-teal/20'
-                                }`}
-                              >
-                                {selectedSchool === s.school_id ? 'Selected' : 'Select'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-4">
+                    {recommendations.map((s, idx) => {
+                      const shortage = s.shortage || 0;
+                      const ratio = s.student_teacher_ratio || 0;
+                      const ratioFormatted = ratio > 0 ? `${Math.round(ratio)}:1` : 'N/A';
+                      const vacancies = s.subject_vacancy || 0;
+                      
+                      let ratioQuality = 'Moderate';
+                      if (ratio < 25) ratioQuality = 'Excellent';
+                      else if (ratio < 30) ratioQuality = 'Good';
+                      else if (ratio > 40) ratioQuality = 'High';
+
+                      const reasons = [];
+                      if (shortage > 0) reasons.push(`Needs ${shortage} teacher${shortage > 1 ? 's' : ''}`);
+                      if (vacancies > 0) reasons.push(`${vacancies} opening${vacancies > 1 ? 's' : ''} in your subject`);
+                      if (ratioQuality === 'Excellent' || ratioQuality === 'Good') {
+                        reasons.push(`${ratioQuality} student-teacher ratio`);
+                      }
+
+                      return (
+                        <div
+                          key={s.school_id}
+                          className="border border-light-gray rounded-xl p-5 hover:shadow-md transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className="bg-teal/10 text-teal px-3 py-1 rounded-lg font-bold text-sm min-w-fit">
+                                #{idx + 1}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-navy text-base">{s.school_name}</h4>
+                                <p className="text-xs text-gray-500">{s.mandal} • {s.district}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setSelectedSchool(s.school_id)}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                                selectedSchool === s.school_id
+                                  ? 'bg-teal text-white'
+                                  : 'bg-light-gray text-navy hover:bg-teal/20'
+                              }`}
+                            >
+                              {selectedSchool === s.school_id ? '✓ Selected' : 'Select'}
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-light-gray">
+                            <div className="bg-soft-white rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Teacher Vacancies</p>
+                              <p className="text-xl font-bold text-alert">{shortage}</p>
+                              <p className="text-xs text-gray-400 mt-1">position{shortage !== 1 ? 's' : ''} needed</p>
+                            </div>
+                            <div className="bg-soft-white rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Student-Teacher Ratio</p>
+                              <p className="text-xl font-bold text-navy">{ratioFormatted}</p>
+                              <p className="text-xs text-gray-400 mt-1">{ratioQuality}</p>
+                            </div>
+                            <div className="bg-soft-white rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Match Strength</p>
+                              <p className="text-xl font-bold text-teal">{idx === 0 ? 'Best' : idx === 1 ? 'Strong' : 'Good'}</p>
+                              <p className="text-xs text-gray-400 mt-1">recommendation</p>
+                            </div>
+                          </div>
+
+                          {reasons.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Why Recommended:</p>
+                              <ul className="space-y-1">
+                                {reasons.map((reason, i) => (
+                                  <li key={i} className="text-sm text-gray-700 flex items-center gap-2">
+                                    <span className="text-teal font-bold">✓</span>
+                                    {reason}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

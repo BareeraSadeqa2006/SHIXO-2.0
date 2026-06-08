@@ -135,6 +135,8 @@ def init_db():
         current_mandal TEXT,
         current_district TEXT,
         mandal TEXT,
+        date_of_first_appointment TEXT,
+        date_joined_current_school TEXT,
         years_of_service INTEGER DEFAULT 0,
         years_in_current_school INTEGER DEFAULT 0,
         rural_service_years INTEGER DEFAULT 0,
@@ -212,6 +214,45 @@ def init_db():
         c.execute("ALTER TABLE teachers ADD COLUMN current_mandal TEXT")
     if 'years_in_current_school' not in existing_cols:
         c.execute("ALTER TABLE teachers ADD COLUMN years_in_current_school INTEGER DEFAULT 0")
+    if 'date_of_first_appointment' not in existing_cols:
+        c.execute("ALTER TABLE teachers ADD COLUMN date_of_first_appointment TEXT")
+    if 'date_joined_current_school' not in existing_cols:
+        c.execute("ALTER TABLE teachers ADD COLUMN date_joined_current_school TEXT")
+
+    # Backfill service dates for legacy rows using existing year values when possible.
+    for row in c.execute(
+        "SELECT teacher_id, years_of_service, years_in_current_school, last_transfer_date, date_of_first_appointment, date_joined_current_school FROM teachers"
+    ).fetchall():
+        updates = []
+        teacher_id = row[0]
+        years_of_service = row[1] or 0
+        years_in_current_school = row[2] or 0
+        last_transfer_date = row[3]
+        appointment_date = row[4]
+        join_date = row[5]
+
+        if not appointment_date and years_of_service > 0:
+            derived_appointment = (datetime.now() - timedelta(days=years_of_service * 365)).strftime("%Y-%m-%d")
+            updates.append(("date_of_first_appointment", derived_appointment))
+
+        if not join_date:
+            if last_transfer_date:
+                derived_join = last_transfer_date
+            elif years_in_current_school > 0:
+                derived_join = (datetime.now() - timedelta(days=years_in_current_school * 365)).strftime("%Y-%m-%d")
+            elif appointment_date:
+                derived_join = appointment_date
+            else:
+                derived_join = None
+
+            if derived_join:
+                updates.append(("date_joined_current_school", derived_join))
+
+        if updates:
+            set_clause = ", ".join([f"{col} = ?" for col, _ in updates])
+            values = [val for _, val in updates] + [teacher_id]
+            c.execute(f"UPDATE teachers SET {set_clause} WHERE teacher_id = ?", values)
+
     conn.commit()
     conn.close()
 
@@ -284,6 +325,12 @@ def seed_db():
             school_ids_by_mandal[m] = []
         school_ids_by_mandal[m].append((s[0], s[1]))
 
+    today = datetime.now()
+
+    def random_past_date(years: int) -> str:
+        days = max(0, years * 365 + random.randint(0, 364))
+        return (today - timedelta(days=days)).strftime("%Y-%m-%d")
+
     all_teachers = []
     for mandal in MANDALS:
         n_teachers = random.randint(20, 30)
@@ -309,17 +356,23 @@ def seed_db():
             status = random.choice(["Active", "Active", "Active", "On Leave"])
 
             years_in_school = random.randint(0, min(5, yos))
+            date_of_first_appointment = random_past_date(yos)
+            date_joined_current_school = random_past_date(years_in_school)
+            last_transfer_date = date_joined_current_school if years_in_school < yos else None
+
             all_teachers.append((
                 tid, hash_password(f"tch{teacher_id_counter:05d}"),
                 "teacher", f"{fname} {lname}", gender, subject,
-                school[0], mandal, mandal, yos, years_in_school, rural, tr, med, spouse,
+                school[0], mandal, mandal,
+                date_of_first_appointment, date_joined_current_school,
+                yos, years_in_school, rural, tr, med, spouse,
                 promo, status, meo_id, None, "None", "",
-                None, 1, 0
+                last_transfer_date, 1, 0
             ))
             teacher_id_counter += 1
 
     c.executemany(
-        "INSERT INTO teachers (teacher_id, password, role, name, gender, subject, current_school, current_mandal, mandal, years_of_service, years_in_current_school, rural_service_years, transfer_request, medical_condition, spouse_distance, promotion_due, current_status, assigned_meo, requested_school, transfer_status, notification_status, last_transfer_date, reapply_eligible, transfer_attempt_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO teachers (teacher_id, password, role, name, gender, subject, current_school, current_mandal, mandal, date_of_first_appointment, date_joined_current_school, years_of_service, years_in_current_school, rural_service_years, transfer_request, medical_condition, spouse_distance, promotion_due, current_status, assigned_meo, requested_school, transfer_status, notification_status, last_transfer_date, reapply_eligible, transfer_attempt_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         all_teachers
     )
 

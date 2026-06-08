@@ -35,6 +35,13 @@ model = None
 le_subject = None
 feature_cols = None
 
+MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER = 3
+MIN_TENURE_PENALTY = 40
+EXPECTED_FEATURE_COLS = [
+    "years_of_service", "years_in_current_school",
+    "transfer_request", "medical_condition", "spouse_distance", "promotion_due", "subject_encoded"
+]
+
 
 # ── Pydantic Models ──────────────────────────────────────────────────────────
 
@@ -93,13 +100,25 @@ def startup():
     os.makedirs(PDF_DIR, exist_ok=True)
 
     model_path = os.path.join(MODEL_DIR, "transfer_model.pkl")
-    if not os.path.exists(model_path):
+    feature_cols_path = os.path.join(MODEL_DIR, "feature_cols.pkl")
+    should_train = False
+
+    if not os.path.exists(model_path) or not os.path.exists(feature_cols_path):
+        should_train = True
+    else:
+        try:
+            saved_feature_cols = joblib.load(feature_cols_path)
+            if any(feature not in saved_feature_cols for feature in EXPECTED_FEATURE_COLS):
+                should_train = True
+        except Exception:
+            should_train = True
+
+    if should_train:
         train_model_from_db()
 
-    if os.path.exists(model_path):
-        model = joblib.load(model_path)
-        le_subject = joblib.load(os.path.join(MODEL_DIR, "label_encoder_subject.pkl"))
-        feature_cols = joblib.load(os.path.join(MODEL_DIR, "feature_cols.pkl"))
+    model = joblib.load(model_path)
+    le_subject = joblib.load(os.path.join(MODEL_DIR, "label_encoder_subject.pkl"))
+    feature_cols = joblib.load(feature_cols_path)
 
 
 def train_model_from_db():
@@ -118,7 +137,7 @@ def train_model_from_db():
         recommended = 1 if score >= 45 else 0
         data.append({
             "years_of_service": r["years_of_service"],
-            "rural_service_years": r["rural_service_years"],
+            "years_in_current_school": r["years_in_current_school"],
             "transfer_request": r["transfer_request"],
             "medical_condition": r["medical_condition"],
             "spouse_distance": r["spouse_distance"],
@@ -132,7 +151,7 @@ def train_model_from_db():
     df["subject_encoded"] = le.fit_transform(df["subject"])
 
     cols = [
-        "years_of_service", "rural_service_years", "transfer_request",
+        "years_of_service", "years_in_current_school", "transfer_request",
         "medical_condition", "spouse_distance", "promotion_due", "subject_encoded"
     ]
 
@@ -172,15 +191,19 @@ def compute_priority(row: dict) -> float:
     if row.get("medical_condition", 0) == 1:
         score += 25
     if row.get("years_of_service", 0) >= 5:
-        score += 20
-    if row.get("rural_service_years", 0) >= 3:
         score += 15
+    if row.get("years_in_current_school", 0) >= MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER:
+        score += 20
     if row.get("promotion_due", 0) == 1:
         score += 10
     if row.get("years_of_service", 0) >= 10:
         score += 10
     if row.get("spouse_distance", 0) > 200:
         score += 20
+
+    if row.get("years_in_current_school", 0) < MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER:
+        score = max(score - MIN_TENURE_PENALTY, 0)
+
     return min(score, 100)
 
 
@@ -192,8 +215,10 @@ def get_transfer_reasons(row: dict) -> list:
         reasons.append("Medical condition requires transfer consideration")
     if row.get("years_of_service", 0) >= 5:
         reasons.append(f"Completed {row['years_of_service']} years of service (≥5 years)")
-    if row.get("rural_service_years", 0) >= 3:
-        reasons.append(f"Completed {row['rural_service_years']} years of rural service")
+    if row.get("years_in_current_school", 0) >= MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER:
+        reasons.append(f"Completed {row['years_in_current_school']} years in the current school")
+    if row.get("years_in_current_school", 0) < MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER:
+        reasons.append(f"Current school tenure below minimum requirement of {MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER} years")
     if row.get("promotion_due", 0) == 1:
         reasons.append("Promotion due — eligible for upgraded posting")
     if row.get("spouse_distance", 0) > 200:
@@ -511,6 +536,7 @@ def get_teacher_profile(teacher_id: str):
     ).fetchone()
 
     t = dict(teacher)
+    refresh_years_of_service(conn, t)
     refresh_years_in_current_school(conn, t)
     conn.close()
 
@@ -522,37 +548,71 @@ def get_teacher_profile(teacher_id: str):
     return t
 
 
+def calculate_years_from_date(date_str: str) -> int:
+    try:
+        if not date_str:
+            return 0
+        start = datetime.strptime(date_str, "%Y-%m-%d")
+        return max(0, (datetime.now() - start).days // 365)
+    except Exception:
+        return 0
+
+
+def refresh_years_of_service(conn, teacher: dict):
+    if not teacher:
+        return 0
+
+    years = teacher.get("years_of_service", 0)
+    appointment_date = teacher.get("date_of_first_appointment")
+    if appointment_date:
+        years = calculate_years_from_date(appointment_date)
+        if years != teacher.get("years_of_service", 0):
+            conn.execute(
+                "UPDATE teachers SET years_of_service = ? WHERE teacher_id = ?",
+                (years, teacher["teacher_id"])
+            )
+            conn.commit()
+            teacher["years_of_service"] = years
+    return years
+
+
 def refresh_years_in_current_school(conn, teacher: dict):
     """
-    Calculate years in current school:
-    - If NO transfer history → return years_of_service (been in school entire career)
-    - If transferred → return elapsed time since last_transfer_date
+    Calculate years in current school using date_joined_current_school where available.
+    Fallback to last_transfer_date when join date is absent. Otherwise use years_of_service.
     """
     if not teacher:
         return 0
-    
-    # No transfer history → show career years
-    if not teacher.get("last_transfer_date"):
-        teacher["years_in_current_school"] = teacher.get("years_of_service", 0)  # ✅ UPDATE DICT
-        return teacher.get("years_of_service", 0)
-    
-    # Has transfer history → calculate from last transfer
-    try:
-        last = datetime.strptime(teacher["last_transfer_date"], "%Y-%m-%d")
-        elapsed = (datetime.now() - last).days // 365
-        
-        if elapsed > teacher.get("years_in_current_school", 0):
+
+    join_date = teacher.get("date_joined_current_school")
+    if join_date:
+        elapsed = calculate_years_from_date(join_date)
+        if elapsed != teacher.get("years_in_current_school", 0):
             conn.execute(
                 "UPDATE teachers SET years_in_current_school = ? WHERE teacher_id = ?",
                 (elapsed, teacher["teacher_id"])
             )
             conn.commit()
-            teacher["years_in_current_school"] = elapsed  # ✅ UPDATE DICT
-        
+            teacher["years_in_current_school"] = elapsed
         return elapsed
-    except Exception:
-        teacher["years_in_current_school"] = teacher.get("years_of_service", 0)  # ✅ UPDATE DICT
-        return teacher.get("years_of_service", 0)
+
+    if teacher.get("last_transfer_date"):
+        try:
+            last = datetime.strptime(teacher["last_transfer_date"], "%Y-%m-%d")
+            elapsed = (datetime.now() - last).days // 365
+            if elapsed != teacher.get("years_in_current_school", 0):
+                conn.execute(
+                    "UPDATE teachers SET years_in_current_school = ? WHERE teacher_id = ?",
+                    (elapsed, teacher["teacher_id"])
+                )
+                conn.commit()
+                teacher["years_in_current_school"] = elapsed
+            return elapsed
+        except Exception:
+            pass
+
+    teacher["years_in_current_school"] = teacher.get("years_of_service", 0)
+    return teacher.get("years_of_service", 0)
 
 
 def check_transfer_cooling_period(teacher: dict) -> tuple:
@@ -590,10 +650,12 @@ def predict_transfer(req: PredictRequest):
     if not teacher:
         conn.close()
         raise HTTPException(status_code=404, detail="Teacher not found")
-    conn.close()
 
     t = dict(teacher)
-    
+    refresh_years_of_service(conn, t)
+    refresh_years_in_current_school(conn, t)
+    conn.close()
+
     # Check cooling-period eligibility first
     is_eligible, days_remaining, cooling_period_reason = check_transfer_cooling_period(t)
     
@@ -611,7 +673,6 @@ def predict_transfer(req: PredictRequest):
             "reasons": [cooling_period_reason],
             "details": {
                 "years_of_service": t["years_of_service"],
-                "rural_service_years": t["rural_service_years"],
                 "transfer_request": t["transfer_request"],
                 "medical_condition": t["medical_condition"],
                 "spouse_distance": t["spouse_distance"],
@@ -624,6 +685,12 @@ def predict_transfer(req: PredictRequest):
     
     priority = compute_priority(t)
     reasons = get_transfer_reasons(t)
+    min_tenure_met = t.get("years_in_current_school", 0) >= MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER
+
+    if not min_tenure_met:
+        tenure_warning = f"Current school tenure is {t.get('years_in_current_school', 0)} year(s), below the required {MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER} years."
+        if tenure_warning not in reasons:
+            reasons.append(tenure_warning)
 
     prediction = False
     confidence = 0.0
@@ -636,7 +703,7 @@ def predict_transfer(req: PredictRequest):
 
         feat_map = {
             "years_of_service": t["years_of_service"],
-            "rural_service_years": t["rural_service_years"],
+            "years_in_current_school": t.get("years_in_current_school", 0),
             "transfer_request": t["transfer_request"],
             "medical_condition": t["medical_condition"],
             "spouse_distance": t["spouse_distance"],
@@ -652,6 +719,10 @@ def predict_transfer(req: PredictRequest):
         prediction = priority >= 45
         confidence = min(priority + 20, 95)
 
+    if not min_tenure_met and priority < 45:
+        prediction = False
+        confidence = min(confidence, 60)
+
     return {
         "teacher_id": req.teacher_id,
         "name": t["name"],
@@ -663,7 +734,8 @@ def predict_transfer(req: PredictRequest):
         "reasons": reasons,
         "details": {
             "years_of_service": t["years_of_service"],
-            "rural_service_years": t["rural_service_years"],
+            "date_of_first_appointment": t.get("date_of_first_appointment"),
+            "date_joined_current_school": t.get("date_joined_current_school"),
             "transfer_request": t["transfer_request"],
             "medical_condition": t["medical_condition"],
             "spouse_distance": t["spouse_distance"],

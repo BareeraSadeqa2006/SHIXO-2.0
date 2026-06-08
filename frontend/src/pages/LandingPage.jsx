@@ -137,7 +137,6 @@ const priorityScores = [
   { label: 'Medical Condition', score: '+25' },
   { label: 'Service Years >= 5', score: '+20' },
   { label: 'Spouse Distance > 200km', score: '+20' },
-  { label: 'Rural Service >= 3 years', score: '+15' },
   { label: 'Promotion Due', score: '+10' },
   { label: 'Long Service >= 10 years', score: '+10' },
 ];
