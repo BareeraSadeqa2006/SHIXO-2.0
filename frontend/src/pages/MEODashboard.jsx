@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMeoDashboard, approveTransfer, rejectTransfer, getMeoAppeals, reviewAppeal } from '../api';
+import { getMeoDashboard, approveTransfer, rejectTransfer, getMeoAppeals, reviewAppeal, getMeoNotifications } from '../api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -28,6 +28,8 @@ export default function MEODashboard({ user, onLogout }) {
   const [appealsData, setAppealsData] = useState(null);
   const [appealReviewModal, setAppealReviewModal] = useState(null);
   const [appealReviewNotes, setAppealReviewNotes] = useState('');
+  const [meoNotifs, setMeoNotifs] = useState([]);
+  const [showNotif, setShowNotif] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,14 +50,25 @@ export default function MEODashboard({ user, onLogout }) {
     getMeoAppeals(user.user_id)
       .then(res => { if (!ignore) setAppealsData(res.data); })
       .catch(() => {});
+    getMeoNotifications(user.user_id)
+      .then(res => { if (!ignore) setMeoNotifs(res.data); })
+      .catch(() => {});
     return () => { ignore = true; };
   }, [user.user_id]);
+
+  const loadNotifications = async () => {
+    try {
+      const r = await getMeoNotifications(user.user_id);
+      setMeoNotifs(r.data);
+    } catch (e) { /* ignore */ }
+  };
 
   const handleApprove = async (requestId) => {
     setActionLoading(requestId);
     try {
       await approveTransfer({ request_id: requestId, meo_id: user.user_id });
       load();
+      loadNotifications();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to approve');
     }
@@ -70,6 +83,7 @@ export default function MEODashboard({ user, onLogout }) {
       setRejectModal(null);
       setRejectReason('');
       load();
+      loadNotifications();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to reject');
     }
@@ -93,6 +107,7 @@ export default function MEODashboard({ user, onLogout }) {
       setAppealReviewNotes('');
       load();
       getMeoAppeals(user.user_id).then(r => setAppealsData(r.data)).catch(() => {});
+      loadNotifications();
     } catch (err) {
       alert(err.response?.data?.detail || `Failed to ${action} appeal`);
     }
@@ -116,6 +131,16 @@ export default function MEODashboard({ user, onLogout }) {
     { name: 'Surplus', value: data.surplus_schools, color: '#10B981' },
     { name: 'Balanced', value: data.total_schools - data.shortage_schools - data.surplus_schools, color: '#0F9D94' },
   ];
+
+  // Presentation helpers
+  const priorityLabelFromScore = (score) => {
+    if ((score || 0) >= 60) return { label: 'High Priority', badge: 'bg-success/10 text-success' };
+    if ((score || 0) >= 40) return { label: 'Medium Priority', badge: 'bg-gold/10 text-gold' };
+    return { label: 'Low Priority', badge: 'bg-alert/10 text-alert' };
+  };
+
+  const formatRatio = (r) => (r ? `${Math.round(r)}:1` : 'N/A');
+  const ratioLong = (r) => (r ? `${Math.round(r)} Students per Teacher` : 'N/A');
 
   return (
     <div className="min-h-screen bg-soft-white flex">
@@ -177,6 +202,31 @@ export default function MEODashboard({ user, onLogout }) {
           <div className="flex items-center gap-3">
             <span className="text-xs bg-teal/10 text-teal px-3 py-1 rounded-full font-medium">{user.user_id}</span>
             <span className="text-xs bg-gold/10 text-gold px-3 py-1 rounded-full font-medium">{data.mandal}</span>
+            <div className="relative">
+              <button onClick={() => setShowNotif(!showNotif)} className="p-2 rounded-full hover:bg-gray-100">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z"/></svg>
+                {meoNotifs.filter(n => n.read === 0).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-alert text-white rounded-full text-[10px] px-1">{meoNotifs.filter(n => n.read === 0).length}</span>
+                )}
+              </button>
+              {showNotif && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50">
+                  <div className="p-3 border-b text-sm font-semibold">Notifications</div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {meoNotifs.length === 0 ? (
+                      <p className="p-3 text-xs text-gray-500">No notifications</p>
+                    ) : (
+                      meoNotifs.map((n) => (
+                        <div key={n.id} className={`p-3 text-sm ${n.read === 0 ? 'bg-soft-white' : ''}`}>
+                          <div className="text-xs text-gray-500 mb-1">{n.created_at}</div>
+                          <div className="text-sm text-gray-800">{n.message}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -251,7 +301,7 @@ export default function MEODashboard({ user, onLogout }) {
               </div>
 
               <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-5">
-                <p className="text-sm text-gray-500"><span className="font-semibold text-navy">Avg Student-Teacher Ratio:</span> {data.avg_student_teacher_ratio}</p>
+                <p className="text-sm text-gray-500"><span className="font-semibold text-navy">Avg Student-Teacher Ratio:</span> {formatRatio(data.avg_student_teacher_ratio)} — <span className="text-xs text-gray-400">{ratioLong(data.avg_student_teacher_ratio)}</span></p>
               </div>
             </div>
           )}
@@ -288,9 +338,7 @@ export default function MEODashboard({ user, onLogout }) {
                             <td className="p-3 text-gray-500 text-xs">{r.current_school}</td>
                             <td className="p-3 text-gray-500 text-xs">{r.requested_school}</td>
                             <td className="p-3 text-center">
-                              <span className={`font-bold ${r.priority_score >= 60 ? 'text-success' : r.priority_score >= 40 ? 'text-gold' : 'text-alert'}`}>
-                                {r.priority_score}
-                              </span>
+                              {(() => { const p = priorityLabelFromScore(r.priority_score); return <span className={`font-bold ${p.badge}`}>{p.label}</span>; })()}
                             </td>
                             <td className="p-3 text-xs text-gray-500 max-w-[150px] truncate">{r.transfer_reason}</td>
                             <td className="p-3 text-center">
@@ -344,7 +392,7 @@ export default function MEODashboard({ user, onLogout }) {
                               <td className="p-3 font-mono text-xs">{r.request_id}</td>
                               <td className="p-3">{r.teacher_id}</td>
                               <td className="p-3 text-xs text-gray-500">{r.current_school} → {r.requested_school}</td>
-                              <td className="p-3 text-center font-bold text-teal">{r.priority_score}</td>
+                              <td className="p-3 text-center">{(() => { const p = priorityLabelFromScore(r.priority_score); return <span className={`font-bold ${p.badge}`}>{p.label}</span>; })()}</td>
                               <td className="p-3 text-xs">{r.approval_date}</td>
                               {key === 'rejected_requests' && <td className="p-3 text-xs text-alert">{r.rejection_reason}</td>}
                             </tr>

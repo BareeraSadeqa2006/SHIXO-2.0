@@ -7,6 +7,8 @@ import json
 import random
 import hashlib
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import math
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "shixo.db")
 
@@ -128,6 +130,7 @@ def init_db():
         teacher_id TEXT PRIMARY KEY,
         password TEXT NOT NULL,
         role TEXT DEFAULT 'teacher',
+        age INTEGER,
         name TEXT NOT NULL,
         gender TEXT,
         subject TEXT,
@@ -206,6 +209,14 @@ def init_db():
         assigned_meo TEXT REFERENCES meos(meo_id),
         mandal TEXT
     );
+    
+    CREATE TABLE IF NOT EXISTS meo_notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        meo_id TEXT REFERENCES meos(meo_id),
+        message TEXT NOT NULL,
+        read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+    );
     """)
 
     # Ensure legacy installs are upgraded safely
@@ -218,6 +229,11 @@ def init_db():
         c.execute("ALTER TABLE teachers ADD COLUMN date_of_first_appointment TEXT")
     if 'date_joined_current_school' not in existing_cols:
         c.execute("ALTER TABLE teachers ADD COLUMN date_joined_current_school TEXT")
+    if 'age' not in existing_cols:
+        try:
+            c.execute("ALTER TABLE teachers ADD COLUMN age INTEGER DEFAULT NULL")
+        except Exception:
+            pass
 
     # Backfill service dates for legacy rows using existing year values when possible.
     for row in c.execute(
@@ -379,3 +395,43 @@ def seed_db():
     conn.commit()
     conn.close()
     print(f"Seeded {len(all_schools)} schools, {len(meos)} MEOs, {len(all_teachers)} teachers")
+
+
+IST = ZoneInfo('Asia/Kolkata')
+
+
+def ist_now_str(fmt: str = "%Y-%m-%d %H:%M %Z") -> str:
+    """Return current time in IST as formatted string."""
+    return datetime.now(IST).strftime(fmt)
+
+
+def compute_expected_teachers(student_strength: int) -> int:
+    """Compute expected number of teachers for a school based on student strength.
+
+    Heuristics (by size):
+      - small (<300): target ratio ~26
+      - medium (<800): target ratio ~28
+      - large: target ratio ~30
+
+    Returns the ceiling of students / target_ratio, minimum 1.
+    """
+    if not student_strength:
+        return 0
+    if student_strength < 300:
+        ratio = 26
+    elif student_strength < 800:
+        ratio = 28
+    else:
+        ratio = 30
+    return max(1, math.ceil(student_strength / ratio))
+
+
+def compute_shortage_for_school(school_row) -> int:
+    """Given a school row (dict or sqlite3.Row), compute shortage as expected - current (>=0)."""
+    try:
+        s = dict(school_row) if not isinstance(school_row, dict) else school_row
+        expected = compute_expected_teachers(s.get('student_strength') or 0)
+        current = int(s.get('current_teacher_count') or 0)
+        return max(0, expected - current)
+    except Exception:
+        return 0

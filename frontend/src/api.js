@@ -14,6 +14,7 @@ export const getNotifications = (id) => api.get(`/notifications/${id}`);
 export const markNotificationRead = (id) => api.put(`/notifications/${id}/read`);
 export const getMeoDashboard = (id) => api.get(`/meo/${id}/dashboard`);
 export const getMeoSchools = (id) => api.get(`/meo/${id}/schools`);
+export const getMeoNotifications = (id) => api.get(`/meo/${id}/notifications`);
 export const approveTransfer = (data) => api.post('/approve_transfer', data);
 export const rejectTransfer = (data) => api.post('/reject_transfer', data);
 export const getDashboardStats = () => api.get('/dashboard_stats');

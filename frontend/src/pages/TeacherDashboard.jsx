@@ -187,6 +187,20 @@ export default function TeacherDashboard({ user, onLogout }) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Presentation helpers
+  const formatRatio = (ratio) => (ratio > 0 ? `${Math.round(ratio)}:1` : 'N/A');
+  const ratioLong = (ratio) => (ratio > 0 ? `${Math.round(ratio)} Students per Teacher` : 'N/A');
+  const priorityLabelFromScore = (score) => {
+    if (score >= 60) return { label: 'High Priority', badge: 'bg-success/10 text-success', text: 'High' };
+    if (score >= 40) return { label: 'Medium Priority', badge: 'bg-gold/10 text-gold', text: 'Medium' };
+    return { label: 'Low Priority', badge: 'bg-alert/10 text-alert', text: 'Low' };
+  };
+  const confidenceLabel = (pct) => {
+    if (pct >= 80) return { label: 'High Confidence', badge: 'bg-success/10 text-success' };
+    if (pct >= 50) return { label: 'Medium Confidence', badge: 'bg-gold/10 text-gold' };
+    return { label: 'Low Confidence', badge: 'bg-alert/10 text-alert' };
+  };
+
   const priorityData = prediction ? [
     { name: 'Transfer Request', value: prediction.details.transfer_request ? 30 : 0 },
     { name: 'Medical', value: prediction.details.medical_condition ? 25 : 0 },
@@ -340,8 +354,18 @@ export default function TeacherDashboard({ user, onLogout }) {
                       }`}>
                         {prediction.transfer_recommended ? 'Transfer Recommended' : 'Transfer Not Recommended'}
                       </div>
-                      <span className="text-sm text-gray-500">Confidence: <span className="font-bold text-navy">{prediction.confidence}%</span></span>
-                      <span className="text-sm text-gray-500">Priority: <span className="font-bold text-gold">{prediction.priority_score}/100</span></span>
+                      {(() => {
+                        const conf = confidenceLabel(prediction.confidence || 0);
+                        return (
+                          <span className="text-sm text-gray-500">Confidence: <span className={`font-bold ${conf.badge}`}>{conf.label}</span></span>
+                        );
+                      })()}
+                      {(() => {
+                        const p = priorityLabelFromScore(prediction.priority_score || 0);
+                        return (
+                          <span className="text-sm text-gray-500 ml-3">Priority: <span className={`font-bold ${p.badge}`}>{p.label}</span></span>
+                        );
+                      })()}
                     </div>
 
                     {/* Explainable AI reasons */}
@@ -399,7 +423,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     {recommendations.map((s, idx) => {
                       const shortage = s.shortage || 0;
                       const ratio = s.student_teacher_ratio || 0;
-                      const ratioFormatted = ratio > 0 ? `${Math.round(ratio)}:1` : 'N/A';
+                      const ratioFormatted = formatRatio(ratio);
                       const vacancies = s.subject_vacancy || 0;
                       
                       let ratioQuality = 'Moderate';
@@ -408,11 +432,9 @@ export default function TeacherDashboard({ user, onLogout }) {
                       else if (ratio > 40) ratioQuality = 'High';
 
                       const reasons = [];
-                      if (shortage > 0) reasons.push(`Needs ${shortage} teacher${shortage > 1 ? 's' : ''}`);
-                      if (vacancies > 0) reasons.push(`${vacancies} opening${vacancies > 1 ? 's' : ''} in your subject`);
-                      if (ratioQuality === 'Excellent' || ratioQuality === 'Good') {
-                        reasons.push(`${ratioQuality} student-teacher ratio`);
-                      }
+                      if (shortage > 0) reasons.push(`School shortage: needs ${shortage} teacher${shortage > 1 ? 's' : ''}`);
+                      if (vacancies > 0) reasons.push(`Subject vacancies: ${vacancies} opening${vacancies > 1 ? 's' : ''} for ${profile.subject}`);
+                      reasons.push(`Student-Teacher ratio: ${ratioLong(ratio)} (${ratioQuality})`);
 
                       return (
                         <div
@@ -450,11 +472,16 @@ export default function TeacherDashboard({ user, onLogout }) {
                             <div className="bg-soft-white rounded-lg p-3">
                               <p className="text-xs text-gray-500 mb-1">Student-Teacher Ratio</p>
                               <p className="text-xl font-bold text-navy">{ratioFormatted}</p>
-                              <p className="text-xs text-gray-400 mt-1">{ratioQuality}</p>
+                              <p className="text-xs text-gray-400 mt-1">{ratioLong(ratio)}</p>
                             </div>
                             <div className="bg-soft-white rounded-lg p-3">
-                              <p className="text-xs text-gray-500 mb-1">Match Strength</p>
-                              <p className="text-xl font-bold text-teal">{idx === 0 ? 'Best' : idx === 1 ? 'Strong' : 'Good'}</p>
+                              <p className="text-xs text-gray-500 mb-1">Priority</p>
+                              {(() => {
+                                const mapIdx = idx === 0 ? { label: 'High Priority', badge: 'bg-success/10 text-success' } : idx === 1 ? { label: 'Medium Priority', badge: 'bg-gold/10 text-gold' } : { label: 'Low Priority', badge: 'bg-alert/10 text-alert' };
+                                return (
+                                  <p className={`text-xl font-bold ${mapIdx.badge.split(' ')[1] || 'text-teal'}`}>{mapIdx.label}</p>
+                                );
+                              })()}
                               <p className="text-xs text-gray-400 mt-1">recommendation</p>
                             </div>
                           </div>
@@ -528,7 +555,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {activeTab === 'History' && (
             <div className="bg-white rounded-2xl border border-light-gray shadow-sm p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Transfer History</h3>
-              {history.length === 0 ? (
+                  {history.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">No transfer requests yet.</p>
               ) : (
                 <div className="space-y-4">
@@ -544,11 +571,11 @@ export default function TeacherDashboard({ user, onLogout }) {
                           {h.status}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div><span className="text-gray-400">From:</span> <span className="font-medium">{h.current_school}</span></div>
                         <div><span className="text-gray-400">To:</span> <span className="font-medium">{h.requested_school}</span></div>
                         <div><span className="text-gray-400">Date:</span> <span className="font-medium">{h.request_date}</span></div>
-                        <div><span className="text-gray-400">Priority:</span> <span className="font-bold text-teal">{h.priority_score}</span></div>
+                        <div><span className="text-gray-400">Priority:</span> {(() => { const p = priorityLabelFromScore(h.priority_score || 0); return <span className={`font-bold ${p.badge}`}>{p.label}</span>; })()}</div>
                       </div>
                       {h.status === 'Approved' && h.approved_by && (
                         <div className="mt-3 text-sm text-gray-600">

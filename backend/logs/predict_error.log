@@ -1,0 +1,14 @@
+--- PREDICT TRANSFER EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\91986\Desktop\shixo2\SHIXO-2.0\backend\main.py", line 694, in predict_transfer
+    shortage = max(0, (school.get('required_teacher_count') or 0) - (school.get('current_teacher_count') or 0))
+                       ^^^^^^^^^^
+AttributeError: 'sqlite3.Row' object has no attribute 'get'
+
+--- PREDICT TRANSFER EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\91986\Desktop\shixo2\SHIXO-2.0\backend\main.py", line 694, in predict_transfer
+    vac = json.loads(school['subject_wise_vacancy'] or '{}')
+                   ^^^^^^^^^^
+AttributeError: 'sqlite3.Row' object has no attribute 'get'
+
