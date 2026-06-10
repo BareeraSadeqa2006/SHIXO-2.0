@@ -1,50 +1,36 @@
+"""Simple wrapper to run the shared teacher-expansion helper.
+
+This module intentionally performs no actions at import time. Run
+
+    python expand_teachers.py      # expand to default TARGET_TEACHERS
+    python expand_teachers.py -t 6000
+
+The actual expansion implementation lives in `database.expand_teachers_to_target()`
+and is reused to preserve distribution and avoid duplicate generation.
 """
-Expand teachers in the SQLite database to approximately 5000 teachers.
-This script uses weighted distribution based on school student strength and current staffing.
-It ensures unique IDs, hashed passwords, realistic dates, ages, subjects, genders.
-Run: python expand_teachers.py
-"""
-import random
-import sqlite3
-from datetime import datetime, timedelta
-from pathlib import Path
-import json
 
-from database import get_db, hash_password, SUBJECTS, FIRST_NAMES_M, FIRST_NAMES_F, LAST_NAMES, MANDALS
+from __future__ import annotations
 
-TARGET_TOTAL = 5000
-TODAY = datetime.now()
-DB = Path(__file__).resolve().parent / 'shixo.db'
-
-random.seed(42)
-
-def next_teacher_id(cursor):
-    row = cursor.execute("SELECT teacher_id FROM teachers ORDER BY teacher_id DESC LIMIT 1").fetchone()
-    if not row:
-        return 1
-    try:
-        return int(row[0][3:]) + 1
-    except Exception:
-        return 1
+import argparse
+from typing import Optional
 
 
-def random_past_date(years):
-    """
-    Wrapper that invokes the shared expansion helper in `database.py`.
-    Run: python expand_teachers.py
-    """
-
+def main(target: Optional[int] = None) -> None:
+    # Import inside function to avoid DB side-effects at import time
     from database import init_db, expand_teachers_to_target, TARGET_TEACHERS
 
+    try:
+        init_db()
+    except Exception:
+        # If DB already exists or init fails for a known reason, let expand helper handle it
+        pass
 
-    def main():
-        try:
-            init_db()
-        except Exception:
-            pass
-        expand_teachers_to_target(TARGET_TEACHERS)
+    tgt = target if target is not None else TARGET_TEACHERS
+    expand_teachers_to_target(tgt)
 
 
-    if __name__ == '__main__':
-        main()
-    schools = c.execute("SELECT * FROM schools").fetchall()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Expand teachers to a target total using shared DB helper")
+    parser.add_argument("-t", "--target", type=int, help="Target total number of teachers (optional)")
+    args = parser.parse_args()
+    main(args.target)

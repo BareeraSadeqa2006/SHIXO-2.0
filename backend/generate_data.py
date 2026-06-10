@@ -1,17 +1,20 @@
 """
 Generate synthetic dataset for Government Teacher Management System
-~10,000 teacher records and ~500 school records
+Targets: 5000 teachers, 520 schools, 20 MEOs (use shared constants from database.py)
 """
 import pandas as pd
 import numpy as np
 import random
 import os
 
+# Reuse shared dataset size targets from the database module
+from database import TARGET_TEACHERS, TARGET_SCHOOLS, TARGET_MEOS
+
 np.random.seed(42)
 random.seed(42)
 
-N_TEACHERS = 10000
-N_SCHOOLS = 500
+N_TEACHERS = TARGET_TEACHERS
+N_SCHOOLS = TARGET_SCHOOLS
 
 SUBJECTS = ["Mathematics", "Science", "English", "Hindi", "Social Science",
             "Physics", "Chemistry", "Biology", "History", "Geography",
