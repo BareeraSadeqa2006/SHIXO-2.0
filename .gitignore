@@ -12,6 +12,15 @@ backend/models/
 backend/pdfs/
 backend/data/
 
+# Python virtual environments
+backend/.venv/
+.venv/
+venv/
+
+# Logs
+backend/logs/
+*.log
+
 # OS
 .DS_Store
 *.swp
