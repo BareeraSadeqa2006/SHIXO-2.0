@@ -12,6 +12,17 @@ import math
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "shixo.db")
 
+# Targets for fresh installations
+TARGET_TEACHERS = 5000
+TARGET_SCHOOLS = 520
+TARGET_MEOS = 20
+# module-level helpers for consistent date generation
+TODAY = datetime.now()
+
+
+def random_past_date(years: int) -> str:
+    days = max(0, years * 365 + random.randint(0, 364))
+    return (TODAY - timedelta(days=days)).strftime("%Y-%m-%d")
 MANDALS = [
     "Hyderabad East", "Hyderabad West", "Secunderabad", "Rangareddy North",
     "Rangareddy South", "Medchal", "Shamirpet", "Keesara", "Ghatkesar",
@@ -283,13 +294,23 @@ def seed_db():
         return
 
     random.seed(42)
-
-    # Seed schools - ~25 per mandal
+    
+    # Seed schools aiming for TARGET_SCHOOLS distributed across mandals
     school_id_counter = 1
     all_schools = []
-    for mandal in MANDALS:
+    num_mandals = len(MANDALS)
+    base = TARGET_SCHOOLS // num_mandals
+    rem = TARGET_SCHOOLS % num_mandals
+    per_mandal_counts = []
+    for i, mandal in enumerate(MANDALS):
+        # base allocation, plus distribute remainder, plus a small random delta
+        n = base + (1 if i < rem else 0) + random.randint(-2, 2)
+        n = max(5, n)
+        per_mandal_counts.append(n)
+
+    # Build schools from per-mandal counts
+    for mandal, n_schools in zip(MANDALS, per_mandal_counts):
         district = MANDAL_DISTRICT_MAP[mandal]
-        n_schools = random.randint(20, 30)
         for _ in range(n_schools):
             sid = f"SCH{school_id_counter:04d}"
             stype = random.choice(SCHOOL_TYPES)
@@ -307,6 +328,29 @@ def seed_db():
                 current, required, ratio, json.dumps(vacancies)
             ))
             school_id_counter += 1
+
+    # Adjust to approximately TARGET_SCHOOLS if small rounding drift occurred
+    if len(all_schools) < TARGET_SCHOOLS:
+        i = 0
+        while len(all_schools) < TARGET_SCHOOLS:
+            mandal = MANDALS[i % num_mandals]
+            district = MANDAL_DISTRICT_MAP[mandal]
+            sid = f"SCH{school_id_counter:04d}"
+            stype = random.choice(SCHOOL_TYPES)
+            sname = f"{stype} {mandal.split()[0]}-{school_id_counter}"
+            strength = random.randint(100, 1500)
+            required = max(4, strength // 30)
+            current = max(2, required + random.randint(-5, 6))
+            ratio = round(strength / max(current, 1), 2)
+            vacancies = {}
+            for subj in random.sample(SUBJECTS, random.randint(2, 5)):
+                vacancies[subj] = random.randint(0, 3)
+            all_schools.append((sid, sname, mandal, district, strength, current, required, ratio, json.dumps(vacancies)))
+            school_id_counter += 1
+            i += 1
+    elif len(all_schools) > TARGET_SCHOOLS:
+        # trim extras
+        all_schools = all_schools[:TARGET_SCHOOLS]
 
     c.executemany(
         "INSERT INTO schools VALUES (?,?,?,?,?,?,?,?,?)",
@@ -332,7 +376,7 @@ def seed_db():
     # Build MEO lookup by mandal
     meo_by_mandal = {m[4]: m[0] for m in meos}
 
-    # Seed teachers - ~500 total spread across mandals
+    # Seed teachers - small realistic sample per mandal; expansion follows if needed
     teacher_id_counter = 1
     school_ids_by_mandal = {}
     for s in all_schools:
@@ -341,16 +385,12 @@ def seed_db():
             school_ids_by_mandal[m] = []
         school_ids_by_mandal[m].append((s[0], s[1]))
 
-    today = datetime.now()
-
-    def random_past_date(years: int) -> str:
-        days = max(0, years * 365 + random.randint(0, 364))
-        return (today - timedelta(days=days)).strftime("%Y-%m-%d")
+    # use module-level random_past_date
 
     all_teachers = []
     for mandal in MANDALS:
         n_teachers = random.randint(20, 30)
-        schools_in_mandal = school_ids_by_mandal[mandal]
+        schools_in_mandal = school_ids_by_mandal.get(mandal, [])
         meo_id = meo_by_mandal[mandal]
 
         for _ in range(n_teachers):
@@ -362,7 +402,7 @@ def seed_db():
                 fname = random.choice(FIRST_NAMES_F)
             lname = random.choice(LAST_NAMES)
             subject = random.choice(SUBJECTS)
-            school = random.choice(schools_in_mandal)
+            school = random.choice(schools_in_mandal) if schools_in_mandal else (None, None)
             yos = random.randint(1, 30)
             rural = random.randint(0, min(yos, 12))
             tr = random.choice([0, 1])
@@ -393,8 +433,136 @@ def seed_db():
     )
 
     conn.commit()
+    # After initial seeding, ensure we reach TARGET_TEACHERS by invoking expansion helper
+    total_teachers = get_total_teachers()
+    if total_teachers < TARGET_TEACHERS:
+        try:
+            expand_teachers_to_target(TARGET_TEACHERS)
+        except Exception:
+            # Best-effort; don't crash init
+            pass
+
     conn.close()
-    print(f"Seeded {len(all_schools)} schools, {len(meos)} MEOs, {len(all_teachers)} teachers")
+    print(f"Seeded {len(all_schools)} schools, {len(meos)} MEOs, {get_total_teachers()} teachers")
+
+
+def get_total_teachers() -> int:
+    conn = get_db()
+    c = conn.cursor()
+    total = c.execute("SELECT COUNT(*) FROM teachers").fetchone()[0]
+    conn.close()
+    return total
+
+
+def expand_teachers_to_target(target: int = TARGET_TEACHERS):
+    """Safely expand teachers in the current DB to reach `target` total teachers.
+    This reuses the expansion logic previously held in expand_teachers.py but
+    operates inside the normal initialization workflow to avoid manual steps.
+    """
+    conn = get_db()
+    c = conn.cursor()
+
+    total_existing = c.execute("SELECT COUNT(*) FROM teachers").fetchone()[0]
+    if total_existing >= target:
+        conn.close()
+        return
+
+    # Load schools and compute desired per-school counts
+    schools = c.execute("SELECT * FROM schools").fetchall()
+    school_list = [dict(s) for s in schools]
+
+    # Determine desired teacher counts based on school size (student_strength)
+    desired_map = {}
+    for s in school_list:
+        strength = s.get('student_strength') or 0
+        if strength < 300:
+            low, high = 3, 8
+        elif strength < 800:
+            low, high = 8, 15
+        else:
+            low, high = 15, 30
+        current = s.get('current_teacher_count') or 0
+        desired = random.randint(low, high)
+        if desired < current:
+            desired = current
+        desired_map[s['school_id']] = desired
+
+    to_add_total = max(0, target - total_existing)
+
+    strengths = [s.get('student_strength') or 0 for s in school_list]
+    total_strength = sum(max(1, st) for st in strengths)
+
+    additions = {s['school_id']: max(0, desired_map[s['school_id']] - (s.get('current_teacher_count') or 0)) for s in school_list}
+    allocated = sum(additions.values())
+
+    remaining = to_add_total - allocated
+    if remaining > 0:
+        for s in school_list:
+            share = int((max(1, s.get('student_strength') or 0) / total_strength) * remaining)
+            additions[s['school_id']] += share
+        cur = sum(additions.values())
+        i = 0
+        while cur < to_add_total:
+            sid = school_list[i % len(school_list)]['school_id']
+            additions[sid] += 1
+            cur += 1
+            i += 1
+
+    # helper to get next teacher id
+    def next_teacher_id(cursor):
+        row = cursor.execute("SELECT teacher_id FROM teachers ORDER BY teacher_id DESC LIMIT 1").fetchone()
+        if not row:
+            return 1
+        try:
+            return int(row[0][3:]) + 1
+        except Exception:
+            return 1
+
+    # Insert additional teachers
+    next_id = next_teacher_id(c)
+    inserted = 0
+    for s in school_list:
+        sid = s['school_id']
+        add_count = additions.get(sid, 0)
+        for _ in range(add_count):
+            tid_num = next_id
+            tid = f"TCH{tid_num:05d}"
+            gender = random.choice(['Male', 'Female'])
+            name_first = random.choice(FIRST_NAMES_M) if gender == 'Male' else random.choice(FIRST_NAMES_F)
+            name = f"{name_first} {random.choice(LAST_NAMES)}"
+            subject = random.choice(SUBJECTS)
+            yos = random.choices(range(1, 36), weights=[1]*4 + [3]*6 + [2]*10 + [1]*15, k=1)[0]
+            yics = random.randint(0, min(yos, 10))
+            if yics > yos:
+                yics = yos
+            date_of_first_appointment = random_past_date(yos)
+            date_joined_current_school = random_past_date(yics) if yics > 0 else date_of_first_appointment
+            last_transfer_date = date_joined_current_school if yics < yos else None
+            medical = 1 if random.random() < 0.04 else 0
+            spouse = random.randint(0, 500)
+            promo = 1 if random.random() < 0.08 else 0
+            status = random.choice(['Active']*8 + ['On Leave']*1)
+            age = 22 + yos + random.randint(0,8)
+            pw = hash_password(f"tch{tid_num:05d}")
+            meo_row = c.execute("SELECT meo_id FROM meos WHERE assigned_mandal = ? LIMIT 1", (s.get('mandal'),)).fetchone()
+            meo_id = meo_row[0] if meo_row else None
+
+            c.execute(
+                "INSERT OR IGNORE INTO teachers (teacher_id, password, role, age, name, gender, subject, current_school, current_mandal, mandal, date_of_first_appointment, date_joined_current_school, years_of_service, years_in_current_school, rural_service_years, transfer_request, medical_condition, spouse_distance, promotion_due, current_status, assigned_meo, requested_school, transfer_status, notification_status, last_transfer_date, reapply_eligible, transfer_attempt_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (tid, pw, 'teacher', age, name, gender, subject, sid, s.get('mandal'), s.get('mandal'), date_of_first_appointment, date_joined_current_school, yos, yics, 0, 0, medical, spouse, promo, status, meo_id, None, 'None', '', last_transfer_date, 1, 0)
+            )
+            next_id += 1
+            inserted += 1
+
+        if add_count > 0:
+            c.execute("UPDATE schools SET current_teacher_count = current_teacher_count + ? WHERE school_id = ?", (add_count, sid))
+            srow = c.execute("SELECT student_strength, current_teacher_count FROM schools WHERE school_id = ?", (sid,)).fetchone()
+            if srow:
+                ratio = round(srow[0] / max(srow[1], 1), 2)
+                c.execute("UPDATE schools SET student_teacher_ratio = ? WHERE school_id = ?", (ratio, sid))
+
+    conn.commit()
+    conn.close()
 
 
 IST = ZoneInfo('Asia/Kolkata')
