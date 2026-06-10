@@ -186,85 +186,94 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-soft-white text-navy">
-      {/* Navbar */}
-      <header
-        className={`sticky top-0 z-50 bg-white/90 backdrop-blur-md transition-all duration-300 ${
-          scrolled ? 'shadow-[0_4px_20px_-8px_rgba(15,23,42,0.18)] border-b border-light-gray' : 'border-b border-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <a href="#top" className="flex items-center gap-3">
-              <img src="/favicon2.jpeg" alt="SHIXO Logo" className="w-10 h-10 rounded-xl object-cover shadow-sm ring-1 ring-light-gray" />
-              <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-navy leading-none">SHIXO</h1>
-                <p className="text-[11px] text-slate mt-0.5">Government Education Portal</p>
-              </div>
-            </a>
-            <nav className="hidden md:flex items-center gap-8">
-              <a href="#features" className="nav-link text-sm font-semibold text-navy">Features</a>
-              <a href="#analytics" className="nav-link text-sm font-semibold text-navy">Analytics</a>
-              <a href="#about" className="nav-link text-sm font-semibold text-navy">About</a>
-              <Link
-                to="/login"
-                className="bg-teal hover:bg-teal-light text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-[0_6px_16px_-6px_rgba(15,157,148,0.6)] hover:shadow-[0_10px_22px_-8px_rgba(15,157,148,0.7)] hover:scale-[1.03] active:scale-[0.97]"
-              >
-                Login Portal
-              </Link>
-            </nav>
-            <Link to="/login" className="md:hidden bg-teal hover:bg-teal-light text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-              Login
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Hero */}
-      <section id="top" className="relative w-full h-[320px] md:h-[400px] overflow-hidden bg-navy">
+        <section id="top" className="relative w-full h-[65vh] min-h-[600px] overflow-hidden bg-transparent">
         {/* 1. Background Artwork */}
         <img
-          src="/bg-hero.jpeg"
+          src="/hero section image.jpeg"
           alt="SHIXO Teacher Transfer and India Network Map"
-          className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
+          
+        className="absolute inset-0 w-full h-full object-cover object-top select-none pointer-events-none z-0 select-none pointer-events-none z-0" 
           draggable="false"
         />
-        {/* Overlay to ensure text readability on the left side */}
-        <div className="absolute inset-0 bg-gradient-to-r from-navy/80 via-navy/30 to-transparent lg:from-navy/60 z-0" />
 
-        {/* 2. Content Area (Left Aligned) */}
-        <div className="absolute inset-0 z-10 flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="reveal max-w-2xl text-left">
-            <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-teal-light mb-4">Smart Governance Platform</span>
-            
-            <h2 className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.1] mb-8">
-              Transparent, Data-Driven <br />
-              <span className="text-teal-light">Education Governance</span>
-            </h2>
+        {/* Light floating particles */}
+        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+          {sparkles.map((s, i) => (
+            <span
+              key={i}
+              className="sparkle absolute rounded-full bg-teal-light/30"
+              style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
+            />
+          ))}
+        </div>
 
-            <p className="text-white/90 text-lg md:text-xl leading-relaxed mb-10">
-              Managing government teacher transfers, workforce allocation, and 
-              real-time monitoring across every district and mandal with intelligent 
-              priority analytics.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <Link
-                to="/login"
-                className="w-full sm:w-auto bg-teal hover:bg-teal-light text-white px-12 py-4 rounded-xl font-bold text-base transition-all shadow-[0_12px_24px_-8px_rgba(15,157,148,0.5)] hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Access Portal
-              </Link>
-              <a
-                href="#features"
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm px-12 py-4 rounded-xl font-bold text-base transition-all"
-              >
-                Explore Features
+        {/* Integrated Premium Glassmorphism Navbar */}
+        {/* The navbar is positioned at the very top of the hero section */}
+        <nav className="absolute top-0 left-0 right-0 z-50 bg-white/5 backdrop-blur-xl border-b border-white/10"> 
+          {/* This ensures the navbar floats over the hero image and does not cover the hero text */}
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-15">
+              <a href="#top" className="flex items-center gap-3">
+                <img src="/favicon2.jpeg" alt="SHIXO Logo" className="w-8 h-8 rounded-xl object-cover shadow-sm ring-1 ring-white/30" />
+                <div>
+                  <h1 className="text-xl font-extrabold tracking-tight text-black leading-none">SHIXO</h1>
+                  <p className="text-[10px] text-teal-light mt-0.5 font-bold uppercase tracking-widest">GovTech Platform</p>
+                </div>
               </a>
+              <div className="hidden md:flex items-center gap-10">
+                <a href="#features" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Features</a>
+                <a href="#analytics" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Analytics</a>
+                <a href="#about" className="text-sm font-bold text-white/80 hover:text-white transition-colors">About</a>
+                <a href="#resources" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Resources</a>
+                <Link
+                  to="/login"
+                  className="bg-teal hover:bg-teal-light text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-[0_8px_20px_-6px_rgba(15,157,148,0.5)] hover:scale-105 active:scale-95"
+                >
+                  Login Portal
+                </Link>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Content Area (Left Side - Visual Split) */}
+        <div className="relative z-30 h-full flex items-start justify-start pt-16">
+          {/* This div ensures content is vertically centered within the hero section */}
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            {/* The max-w-[45%] ensures the text content occupies the left side, leaving the right for the image */}
+            {/* A subtle dark gradient overlay is added behind the text for improved readability */}
+            <div className="reveal max-w-[45%] text-left">
+              
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-black leading-[1.1] mb-6">
+  Smart Teacher Transfer & <br />
+  <span className="text-teal-light">Workforce Analytics Platform</span>
+</h2>
+
+              <p className="text-black/70 text-lg md:text-xl leading-relaxed mb-12 max-w-md">
+                Transparent, data-driven governance for managing government teacher transfers, workforce allocation, and education workforce monitoring across districts and mandals.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <Link
+                  to="/login"
+                  className="w-full sm:w-auto bg-teal hover:bg-teal-light text-white px-12 py-4 rounded-xl font-bold text-base transition-all shadow-[0_12px_30px_-8px_rgba(15,157,148,0.6)] hover:scale-[1.05] active:scale-95"
+                >
+                  Access Portal
+                </Link>
+                <a
+  href="#features"
+  className="w-full sm:w-auto bg-[#2CCBC0] hover:bg-[#24B8AD] text-white px-12 py-4 rounded-xl font-bold text-base transition-all shadow-[0_12px_30px_-8px_rgba(44,203,192,0.4)] hover:scale-[1.05] active:scale-95"
+>
+  Explore Features
+</a>
+              </div>
             </div>
           </div>
         </div>
-        </div>
+      
       </section>
 
 
