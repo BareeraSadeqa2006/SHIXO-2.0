@@ -1152,7 +1152,7 @@ def approve_transfer(req: ApproveTransferRequest):
 
     # Update old school count
     conn.execute(
-        """UPDATE schools SET current_teacher_count = MAX(0, current_teacher_count - 1)
+        """UPDATE schools SET current_teacher_count = CASE WHEN current_teacher_count > 0 THEN current_teacher_count - 1 ELSE 0 END
            WHERE school_id = ?""",
         (old_school,)
     )

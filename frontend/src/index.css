@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+body {
+  font-family: 'Inter', sans-serif;
+}
+
 @theme {
   /* Brand teal system */
   --color-teal: #0F9D94;        /* primary teal */
