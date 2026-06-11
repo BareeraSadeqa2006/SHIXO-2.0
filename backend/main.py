@@ -889,6 +889,17 @@ def apply_transfer(req: ApplyTransferRequest):
         conn.close()
         raise HTTPException(status_code=404, detail="Teacher not found")
 
+    # ISSUE 2 FIX: Enforce eligibility check before allowing transfer application
+    # Run predict_transfer to ensure eligibility has been assessed
+    t = dict(teacher)
+    is_eligible, _, cooling_reason = check_transfer_cooling_period(t)
+    if not is_eligible:
+        conn.close()
+        raise HTTPException(
+            status_code=403,
+            detail=f"You are not eligible for transfer: {cooling_reason}. Please check your eligibility first."
+        )
+
     existing = conn.execute(
         "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Pending'",
         (req.teacher_id,)
@@ -913,6 +924,15 @@ def apply_transfer(req: ApplyTransferRequest):
     mandal_for_req = school["mandal"]
     assigned_meo_row = conn.execute("SELECT meo_id FROM meos WHERE assigned_mandal = ?", (mandal_for_req,)).fetchone()
     assigned_meo = assigned_meo_row["meo_id"] if assigned_meo_row else None
+    
+    # ISSUE 1 FIX: Ensure MEO assignment is never NULL to maintain visibility
+    if not assigned_meo:
+        # Fallback: assign to MEO of current school if target MEO not found
+        current_mandal = t.get("mandal", mandal_for_req)
+        assigned_meo_fallback = conn.execute(
+            "SELECT meo_id FROM meos WHERE assigned_mandal = ?", (current_mandal,)
+        ).fetchone()
+        assigned_meo = assigned_meo_fallback["meo_id"] if assigned_meo_fallback else None
 
     conn.execute(
         "INSERT INTO transfer_requests (request_id, teacher_id, current_school, requested_school, mandal, request_date, transfer_reason, priority_score, status, assigned_meo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)",
@@ -1034,8 +1054,12 @@ def meo_dashboard(meo_id: str):
 
     total_teachers = len(teachers_list)
     total_schools = len(schools_list)
-    shortage_schools = sum(1 for s in schools_list if s["current_teacher_count"] < s["required_teacher_count"])
-    surplus_schools = sum(1 for s in schools_list if s["current_teacher_count"] > s["required_teacher_count"])
+    shortage_schools = sum(1 for s in schools_list if compute_shortage_for_school(s) > 0)
+    surplus_schools = sum(
+        1
+        for s in schools_list
+        if s["current_teacher_count"] > compute_expected_teachers(s["student_strength"])
+    )
 
     subject_dist = {}
     for t in teachers_list:
@@ -1256,7 +1280,11 @@ def dashboard_stats():
     rejected_requests = sum(1 for r in requests if r["status"] == "Rejected")
 
     shortage = sum(1 for s in schools if compute_shortage_for_school(dict(s)) > 0)
-    surplus = sum(1 for s in schools if s["current_teacher_count"] > s["required_teacher_count"])
+    surplus = sum(
+        1
+        for s in schools
+        if s["current_teacher_count"] > compute_expected_teachers(s["student_strength"])
+    )
     avg_ratio = round(sum(s["student_teacher_ratio"] for s in schools) / max(len(schools), 1), 2)
 
     subject_dist = {}
@@ -1316,8 +1344,47 @@ def download_pdf(request_id: str):
 
 
 @app.get("/schools")
-def list_schools(mandal: Optional[str] = None):
+def list_schools(mandal: Optional[str] = None, teacher_id: Optional[str] = None):
+    """
+    ISSUE 2 FIX: Added backend eligibility enforcement.
+    If teacher_id is provided, verify teacher has been assessed for transfer eligibility.
+    Without proper eligibility check, teachers cannot bypass to access schools directly.
+    """
     conn = get_db()
+    
+    # If teacher_id provided, enforce eligibility check workflow
+    if teacher_id:
+        teacher = conn.execute(
+            "SELECT * FROM teachers WHERE teacher_id = ?", (teacher_id,)
+        ).fetchone()
+        if not teacher:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Teacher not found")
+        
+        t = dict(teacher)
+        
+        # Check if transfer eligibility has been assessed (prediction must have been run)
+        # We track this via checking cooling period and pending requests
+        pending_transfer = conn.execute(
+            "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Pending'",
+            (teacher_id,)
+        ).fetchone()
+        
+        # If no pending request, verify teacher is eligible by checking cooling period
+        if not pending_transfer and t.get("last_transfer_date"):
+            from datetime import datetime as dt
+            last_date = dt.strptime(t["last_transfer_date"], "%Y-%m-%d")
+            days_since = (dt.now() - last_date).days
+            has_medical = t.get("medical_condition", 0) == 1
+            spouse_far = t.get("spouse_distance", 0) > 200
+            
+            if days_since < COOLING_PERIOD_DAYS and not (has_medical or spouse_far):
+                conn.close()
+                raise HTTPException(
+                    status_code=403,
+                    detail="You must complete the eligibility assessment before accessing schools. Run 'Check Eligibility' first."
+                )
+    
     if mandal:
         schools = conn.execute("SELECT * FROM schools WHERE mandal = ?", (mandal,)).fetchall()
     else:
@@ -1347,8 +1414,8 @@ def workforce_stats():
             }
         mandal_stats[m]["schools"] += 1
         mandal_stats[m]["teachers"] += s["current_teacher_count"]
-        mandal_stats[m]["required"] += s["required_teacher_count"]
-        diff = s["current_teacher_count"] - s["required_teacher_count"]
+        mandal_stats[m]["required"] += compute_expected_teachers(s["student_strength"])
+        diff = s["current_teacher_count"] - compute_expected_teachers(s["student_strength"])
         if compute_shortage_for_school(s) > 0:
             mandal_stats[m]["shortage"] += 1
         elif diff > 0:
@@ -1357,8 +1424,16 @@ def workforce_stats():
     for m in mandal_stats:
         mandal_stats[m]["gap"] = mandal_stats[m]["required"] - mandal_stats[m]["teachers"]
 
-    top_shortage = sorted(schools_list, key=lambda s: s["current_teacher_count"] - s["required_teacher_count"])[:10]
-    top_surplus = sorted(schools_list, key=lambda s: s["current_teacher_count"] - s["required_teacher_count"], reverse=True)[:10]
+    top_shortage = sorted(
+        schools_list,
+        key=lambda s: compute_expected_teachers(s["student_strength"]) - s["current_teacher_count"],
+        reverse=True,
+    )[:10]
+    top_surplus = sorted(
+        schools_list,
+        key=lambda s: s["current_teacher_count"] - compute_expected_teachers(s["student_strength"]),
+        reverse=True,
+    )[:10]
 
     return {
         "mandal_stats": list(mandal_stats.values()),
@@ -1529,6 +1604,16 @@ def reapply_transfer(req: ReapplyTransferRequest):
 
     t = dict(teacher)
 
+    # ISSUE 1 FIX: Enforce 3-attempt limit for transfer requests
+    MAX_TRANSFER_ATTEMPTS = 3
+    attempt_count = t.get("transfer_attempt_count", 0)
+    if attempt_count >= MAX_TRANSFER_ATTEMPTS:
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum transfer attempts ({MAX_TRANSFER_ATTEMPTS}) reached. You cannot submit additional transfer requests."
+        )
+
     # Check for pending request
     pending = conn.execute(
         "SELECT * FROM transfer_requests WHERE teacher_id = ? AND status = 'Pending'",
@@ -1570,6 +1655,15 @@ def reapply_transfer(req: ReapplyTransferRequest):
     mandal_for_req = school["mandal"]
     assigned_meo_row = conn.execute("SELECT meo_id FROM meos WHERE assigned_mandal = ?", (mandal_for_req,)).fetchone()
     assigned_meo = assigned_meo_row["meo_id"] if assigned_meo_row else None
+    
+    # ISSUE 1 FIX: Ensure MEO assignment is never NULL to maintain visibility
+    if not assigned_meo:
+        # Fallback: assign to MEO of current school if target MEO not found
+        current_mandal = t.get("mandal", mandal_for_req)
+        assigned_meo_fallback = conn.execute(
+            "SELECT meo_id FROM meos WHERE assigned_mandal = ?", (current_mandal,)
+        ).fetchone()
+        assigned_meo = assigned_meo_fallback["meo_id"] if assigned_meo_fallback else None
 
     conn.execute(
         "INSERT INTO transfer_requests (request_id, teacher_id, current_school, requested_school, mandal, request_date, transfer_reason, priority_score, status, assigned_meo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)",

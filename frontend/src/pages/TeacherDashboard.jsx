@@ -212,16 +212,33 @@ export default function TeacherDashboard({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-soft-white flex">
       {/* Sidebar */}
-      <aside className={`bg-navy text-white flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-56' : 'w-16'}`}>
+      <aside className={`bg-navy text-white flex-shrink-0 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-56' : 'w-16'}`}>
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          {sidebarOpen && <span className="font-bold text-sm">SHIXO</span>}
+          {sidebarOpen && (
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm">SHIXO</span>
+            </div>
+          )}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-light-gray hover:text-white p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
-        <nav className="py-4 space-y-1 px-2">
+        {sidebarOpen && profile && (
+          <div className="px-4 py-3 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-teal rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                {profile.name?.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{profile.name}</p>
+                <p className="text-xs text-light-gray truncate">{profile.teacher_id}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
           {tabs.map(t => (
             <button
               key={t}
@@ -246,9 +263,9 @@ export default function TeacherDashboard({ user, onLogout }) {
             </button>
           ))}
         </nav>
-        <div className="absolute bottom-0 left-0 p-4">
-          <button onClick={onLogout} className="text-xs text-light-gray hover:text-white flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="border-t border-white/10 p-2 mt-auto">
+          <button onClick={onLogout} className="w-full text-xs text-light-gray hover:text-white hover:bg-white/10 flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             {sidebarOpen && 'Logout'}
