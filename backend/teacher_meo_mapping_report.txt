@@ -1,5 +1,5 @@
 MEO001
-Total Teachers: 278
+Total Teacher: 278
 
 Teacher IDs:
 TCH00001

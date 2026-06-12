@@ -36,8 +36,7 @@ const features = [
           </svg>
         ),
       },
-      { title: 'Mutual Transfers', desc: 'Facilitating seamless swap requests between eligible teachers with automated validation.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg> },
-      { title: 'Priority Allocation', desc: 'Priority scoring based on service years, medical needs, and policy criteria.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg> },
+
     ],
   },
   {
@@ -53,8 +52,6 @@ const features = [
         ),
       },
       { title: 'Vacancy Mapping', desc: 'Visualizing open positions across every district and mandal to optimize hiring.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg> },
-      { title: 'District Insights', desc: 'Granular data on student-teacher ratios and workforce health at the administrative level.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> },
-      { title: 'Teacher Distribution', desc: 'Real-time monitoring of subject-wise teacher availability and surpluses.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg> },
     ],
   },
   {
@@ -70,8 +67,6 @@ const features = [
         ),
       },
       { title: 'Approval Tracking', desc: 'End-to-end visibility into the status of every application within the pipeline.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg> },
-      { title: 'Audit Logs', desc: 'Comprehensive logging of all administrative actions for transparency.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-      { title: 'Policy Compliance', desc: 'Ensuring every transfer adheres to government guidelines and eligibility.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
     ],
   },
   {
@@ -95,8 +90,6 @@ const features = [
           </svg>
         ),
       },
-      { title: 'AI Recommendations', desc: 'Smart suggestions to balance teacher ratios effectively and solve localized shortages.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> },
-      { title: 'Decision Support', desc: 'Empowering administrators with data-backed insights for efficient workforce optimization.', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
     ],
   },
 ];
@@ -143,9 +136,7 @@ const priorityScores = [
 
 const aiPoints = [
   'Explainable AI — understand why transfers are recommended',
-  'Priority scoring based on service years, medical needs, and policy criteria',
   'Smart school allocation using vacancy and shortage analysis',
-  'Real-time workforce distribution monitoring',
 ];
 
 const featureColors = ['#14B8A6', '#0F766E', '#059669', '#0284C7'];
@@ -185,12 +176,12 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-soft-white text-navy">
+    <div className="min-h-[65vh] bg-soft-white text-navy">
       {/* Hero */}
         <section id="top" className="relative w-full h-[65vh] min-h-[600px] overflow-hidden bg-transparent">
         {/* 1. Background Artwork */}
         <img
-          src="/hero section image.jpeg"
+          src="/hero section.jpeg"
           alt="SHIXO Teacher Transfer and India Network Map"
           
         className="absolute inset-0 w-full h-full object-cover object-top select-none pointer-events-none z-0 select-none pointer-events-none z-0" 
@@ -222,15 +213,14 @@ export default function LandingPage() {
                   <p className="text-[10px] text-teal-light mt-0.5 font-bold uppercase tracking-widest">GovTech Platform</p>
                 </div>
               </a>
-              <div className="hidden md:flex items-center gap-10">
+              <div className="hidden md:flex items-center gap-4">
                 <a href="#features" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Features</a>
                 <a href="#analytics" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Analytics</a>
                 <a href="#about" className="text-sm font-bold text-white/80 hover:text-white transition-colors">About</a>
-                <a href="#resources" className="text-sm font-bold text-white/80 hover:text-white transition-colors">Resources</a>
+                
                 <Link
                   to="/login"
-                  className="bg-teal hover:bg-teal-light text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-[0_8px_20px_-6px_rgba(15,157,148,0.5)] hover:scale-105 active:scale-95"
-                >
+             className="bg-[#3F7F7A] hover:bg-[#356D68] text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-[0_8px_20px_-6px_rgba(19,78,74,0.5)] hover:scale-105 active:scale-95">
                   Login Portal
                 </Link>
               </div>
@@ -239,70 +229,88 @@ export default function LandingPage() {
         </nav>
 
         {/* Hero Content Area (Left Side - Visual Split) */}
-        <div className="relative z-30 h-full flex items-start justify-start pt-16">
-          {/* This div ensures content is vertically centered within the hero section */}
+        <div className="absolute inset-0 z-30 flex items-start pt-24">
+          {/* This div ensures content is positioned below navbar */}
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
             {/* The max-w-[45%] ensures the text content occupies the left side, leaving the right for the image */}
-            {/* A subtle dark gradient overlay is added behind the text for improved readability */}
-            <div className="reveal max-w-[45%] text-left">
-              
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-black leading-[1.1] mb-6">
-  Smart Teacher Transfer & <br />
-  <span className="text-teal-light">Workforce Analytics Platform</span>
+            
+
+ <div className="reveal max-w-[45%] text-left">
+
+<h2
+  className="text-lg md:text-2xl lg:text-[3rem] font-bold text-navy leading-[0.95] tracking-[-0.03em] mb-2"
+  style={{ fontFamily: 'Space Grotesk, sans-serif' }}
+>
+  SMART TEACHER
+  <br />
+  TRANSFER &
+  <br />
+  <span className="text-[#509B95]">
+    WORKFORCE ANALYTICS
+  </span>
 </h2>
 
-              <p className="text-black/70 text-lg md:text-xl leading-relaxed mb-12 max-w-md">
-                Transparent, data-driven governance for managing government teacher transfers, workforce allocation, and education workforce monitoring across districts and mandals.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <Link
-                  to="/login"
-                  className="w-full sm:w-auto bg-teal hover:bg-teal-light text-white px-12 py-4 rounded-xl font-bold text-base transition-all shadow-[0_12px_30px_-8px_rgba(15,157,148,0.6)] hover:scale-[1.05] active:scale-95"
-                >
-                  Access Portal
-                </Link>
-                <a
-  href="#features"
-  className="w-full sm:w-auto bg-[#2CCBC0] hover:bg-[#24B8AD] text-white px-12 py-4 rounded-xl font-bold text-base transition-all shadow-[0_12px_30px_-8px_rgba(44,203,192,0.4)] hover:scale-[1.05] active:scale-95"
->
-  Explore Features
-</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      
-      </section>
+<p className="text-slate text-lg md:text-xl leading-relaxed mb-8 max-w-xl font-medium">
+  Transparent, data-driven governance for managing government teacher transfers,
+  workforce allocation, and education workforce monitoring across districts and mandals.
+</p>
 
+<div className="flex flex-wrap gap-4">
+  <Link
+    to="/login"
+    className="inline-block bg-gradient-to-r from-teal to-[#509B95] text-white px-8 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.03] shadow-[0_12px_30px_-6px_rgba(15,157,148,0.45)]"
+  >
+    Access Portal
+  </Link>
 
-      {/* 3. Statistics Row (Below the Hero Section) */}
-      <div className="bg-white py-12 border-b border-light-gray">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 reveal">
-            {[
-              { label: 'AI Accuracy', value: '95%+' },
-              { label: 'Teachers Tracked', value: '10,000+' },
-              { label: 'Mandals Live', value: '20' },
-              { label: 'Time Saved', value: '60%' },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center md:text-left">
-                <div className="text-3xl lg:text-4xl font-extrabold text-navy leading-none mb-2 text-teal">
-                  {stat.value}
-                </div>
-                <div className="text-[10px] font-bold text-slate uppercase tracking-[0.2em] opacity-60">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+  <a
+    href="#features"
+    className="inline-block bg-white/90 border border-teal/20 text-navy px-8 py-3 rounded-xl font-bold text-sm transition-all hover:bg-white shadow-lg"
+  >
+    Explore Features
+  </a>
+</div>
           </div>
         </div>
       </div>
+           </section>
+
+
+   {/* 3. Statistics Row (Glassmorphism) */}
+<div className="bg-gradient-to-b from-teal-50 via-cyan-50 to-white py-10">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="bg-white/50 backdrop-blur-xl border border-teal-100 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(20,184,166,0.25)] py-10 px-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-12 reveal">
+        {[
+          { label: 'AI Accuracy', value: '95%+' },
+          { label: 'Teachers Tracked', value: '10,000+' },
+          { label: 'Mandals Live', value: '20' },
+          { label: 'Time Saved', value: '60%' },
+        ].map((stat, i) => (
+          <div key={stat.label} className="relative text-center">
+            <div className="text-3xl lg:text-4xl font-extrabold text-[#14B8A6] leading-none mb-2">
+              {stat.value}
+            </div>
+
+            <div className="text-[10px] font-bold text-slate uppercase tracking-[0.2em] opacity-70">
+              {stat.label}
+            </div>
+
+            {/* Vertical Divider */}
+            {i !== 3 && (
+              <div className="hidden md:block absolute right-[-24px] top-1/2 -translate-y-1/2 h-12 w-px bg-teal-200" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
    
 
       {/* About */}
-      <section id="about" className="relative overflow-hidden py-24 lg:py-32 bg-[#F8FAFC]">
+      <section id="about" className="relative overflow-hidden pt-8 pb-24 bg-[#F8FAFC]">
         {/* Background Decorations */}
         <div className="absolute inset-0 opacity-[0.4] pointer-events-none" 
              style={{ backgroundImage: 'radial-gradient(#14B8A6 0.6px, transparent 0.6px)', backgroundSize: '24px 24px' }} />
@@ -338,7 +346,7 @@ export default function LandingPage() {
             </p>
           </div>
           
-        <div className="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {aboutHighlights.map((h, i) => (
               <div
                 key={h.title}
@@ -347,7 +355,7 @@ export default function LandingPage() {
                 {/* Top Gradient Accent Strip */}
                 <div className={`h-[10px] w-full bg-gradient-to-r ${h.gradient}`} />
                 
-                <div className="p-5 flex flex-col h-full">
+                <div className="p-4 flex flex-col h-full">
                   {/* Feature Image Area */}
                  <div className="w-full h-40 mb-5 rounded-2xl overflow-hidden bg-[#F8FAFC]">
   <img
@@ -372,7 +380,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features - Kanban Layout */}
-      <section id="features" className="relative overflow-hidden py-24 lg:py-32 bg-white">
+     <section id="features" className="relative overflow-hidden py-12 bg-white">
         <div className="pointer-events-none absolute top-1/4 -right-24 w-[34rem] h-[34rem] rounded-full bg-mint/10 blur-3xl -z-0" />
         <div className="pointer-events-none absolute bottom-0 -left-24 w-[30rem] h-[30rem] rounded-full bg-light-teal/20 blur-3xl -z-0" />
 
@@ -440,46 +448,192 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Analytics / AI */}
-      <section id="analytics" className="relative overflow-hidden py-20 lg:py-24">
-        <div className="pointer-events-none absolute top-1/3 left-0 w-[32rem] h-[32rem] rounded-full bg-teal/10 blur-3xl -z-10" />
+      {/* Analytics / AI - Premium Infographic Section */}
+      <section id="analytics" className="relative overflow-hidden pt-8 pb-12 lg:pt-10 lg:pb-16 bg-gradient-to-br from-white via-[#F8FAFC] to-white">
+        {/* Background decorations */}
+        <div className="pointer-events-none absolute top-0 right-0 w-96 h-96 rounded-full bg-teal/5 blur-3xl -z-10" />
+        <div className="pointer-events-none absolute bottom-0 left-0 w-96 h-96 rounded-full bg-mint/5 blur-3xl -z-10" />
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="reveal">
-              <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-teal mb-3">Explainable AI</span>
-              <h3 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4 leading-tight">
-                AI-Based Government Teacher Management System
-              </h3>
-              <p className="text-slate mb-8 leading-relaxed text-lg">
-                Leveraging Random Forest machine learning algorithms trained on comprehensive
-                teacher service data to predict transfer eligibility, calculate priority scores,
-                and recommend optimal school placements.
-              </p>
-              <div className="space-y-4">
-                {aiPoints.map((item) => (
-                  <div key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 shrink-0 w-6 h-6 rounded-full bg-success/10 text-success flex items-center justify-center">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                      </svg>
-                    </span>
-                    <span className="text-[15px] text-slate">{item}</span>
+          {/* Section Header */}
+          <div className="reveal text-center mb-2">
+            <span className="inline-block text-[11px] font-bold uppercase tracking-[0.4em] text-teal bg-teal/5 px-5 py-2 rounded-full mb-4 border border-teal/10">Platform Strengths</span>
+            <h3 className="text-4xl lg:text-5xl font-extrabold text-navy tracking-tight">Intelligent, Transparent, Accountable</h3>
+          </div>
+
+          {/* Three-Column Infographic Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.9fr_1.3fr] gap-4 items-center">
+            
+            {/* LEFT COLUMN - Features */}
+            <div className="flex flex-col gap-4">
+              {/* Feature 1 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                ))}
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Explainable AI</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">Models provide clear reasons for every recommendation.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Transparent Decisions</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">Fair, unbiased and rule-based evaluations.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Priority Scoring</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">Multi-factor ranking for transfer requests.</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="reveal bg-white rounded-2xl p-8 border border-light-gray shadow-[0_20px_50px_-24px_rgba(15,23,42,0.25)]">
-              <div className="flex items-center justify-between mb-5">
-                <div className="text-sm font-bold text-navy">Transfer Priority Scoring</div>
-                <span className="text-xs font-semibold text-teal bg-light-teal px-3 py-1 rounded-full">Live model</span>
+
+            {/* CENTER - Building Illustration with Glow & Decorations */}
+            <div className="hidden lg:flex items-center justify-center relative h-[420px]">
+              {/* Radial Teal Glow Background */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute w-96 h-96 rounded-full bg-gradient-radial from-teal/30 via-teal/10 to-transparent blur-3xl" />
               </div>
-              <div className="space-y-2.5">
-                {priorityScores.map((item) => (
-                  <div key={item.label} className="flex justify-between items-center bg-soft-white border border-light-gray rounded-xl px-4 py-3">
-                    <span className="text-sm text-slate">{item.label}</span>
-                    <span className="text-sm font-bold text-teal tabular-nums">{item.score}</span>
+
+              {/* Decorative Floating Particles */}
+              <div className="absolute inset-0 overflow-hidden">
+                {/* Top left particle */}
+                <div className="absolute top-12 left-8 w-3 h-3 rounded-full bg-teal/20 animate-pulse" />
+                {/* Top right particle */}
+                <div className="absolute top-20 right-12 w-2 h-2 rounded-full bg-teal/30 animate-pulse delay-1000" />
+                {/* Bottom left particle */}
+                <div className="absolute bottom-24 left-16 w-2.5 h-2.5 rounded-full bg-teal/15 animate-pulse delay-500" />
+                {/* Bottom right particle */}
+                <div className="absolute bottom-32 right-20 w-2 h-2 rounded-full bg-teal/25 animate-pulse delay-700" />
+                
+                {/* Subtle decorative lines */}
+                <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
+                  <path d="M50 100 Q 200 150, 350 100" stroke="#14B8A6" strokeWidth="1" fill="none" strokeDasharray="5,5" />
+                  <path d="M70 400 Q 200 350, 330 400" stroke="#14B8A6" strokeWidth="1" fill="none" strokeDasharray="5,5" />
+                </svg>
+
+                {/* Soft cloud shapes */}
+                <div className="absolute top-8 left-20 w-24 h-12 rounded-full bg-gradient-to-r from-teal/5 to-transparent blur-2xl" />
+                <div className="absolute bottom-16 right-16 w-32 h-16 rounded-full bg-gradient-to-l from-mint/5 to-transparent blur-2xl" />
+              </div>
+
+              {/* Building Image Container */}
+              <div className="relative z-10 w-full h-full w-full max-w-lg flex items-center justify-center">
+                <img 
+                  src="/government-building.png"
+               alt="Government Building" 
+                  className="w-full max-w-md h-auto object-contain drop-shadow-2xl filter brightness-105"
+                  style={{
+                    filter: 'drop-shadow(0 0 30px rgba(20, 184, 166, 0.15)) brightness(1.05)'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN - Features */}
+            <div className="flex flex-col gap-4">
+              {/* Feature 4 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
-                ))}
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Workforce Analytics</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">Real-time vacancy and distribution insights.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 5 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Smart Allocation</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">AI-driven school placement recommendations.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 6 */}
+              <div className="reveal group relative bg-white rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-all duration-300 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-teal/10 flex items-center justify-center ring-2 ring-teal/30">
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-navy group-hover:text-teal transition-colors">Policy Compliance</h4>
+                    <p className="text-[12px] text-slate/70 mt-0.5">Every decision follows government guidelines.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Building Image - Visible only on small screens */}
+          <div className="md:hidden reveal text-center mt-12 relative">
+            {/* Mobile glow background */}
+            <div className="absolute inset-0 flex items-center justify-center -z-10">
+              <div className="w-64 h-64 rounded-full bg-gradient-radial from-teal/20 via-teal/5 to-transparent blur-3xl" />
+            </div>
+            
+            <img 
+              src="/government-building.png" 
+              alt="Government Building" 
+              className="w-full max-w-md h-auto object-contain drop-shadow-lg mx-auto relative z-10"
+              style={{
+                filter: 'drop-shadow(0 0 20px rgba(20, 184, 166, 0.15)) brightness(1.05)'
+              }}
+            />
+          </div>
+
+          {/* Bottom Callout Card */}
+          <div className="reveal relative mt-2">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/80 via-white/70 to-white/80 backdrop-blur-2xl border border-white/50 px-8 py-12 lg:px-16 lg:py-14 text-center shadow-[0_20px_60px_-12px_rgba(15,157,148,0.2)]">
+              {/* Decorative background */}
+              <div className="pointer-events-none absolute -top-20 -right-20 w-40 h-40 rounded-full bg-teal/5 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-20 -left-20 w-40 h-40 rounded-full bg-mint/5 blur-2xl" />
+              
+              <div className="relative z-10">
+                <h4 className="text-2xl lg:text-3xl font-extrabold text-navy mb-3">
+                  Building a Fairer, Smarter, and Stronger Education System
+                </h4>
+                <p className="text-base text-slate/80 max-w-2xl mx-auto font-medium">
+                  Empowering teachers. Strengthening schools. Transforming governance.
+                </p>
               </div>
             </div>
           </div>
