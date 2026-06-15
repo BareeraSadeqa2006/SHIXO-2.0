@@ -31,4 +31,7 @@ export const getTeacherAppeals = (id) => api.get(`/appeals/${id}`);
 export const getMeoAppeals = (id) => api.get(`/meo/${id}/appeals`);
 export const reviewAppeal = (data) => api.post('/review_appeal', data);
 
+// Eligibility check for MEO
+export const checkEligibilityMeo = (data) => api.post('/check_eligibility_meo', data);
+
 export default api;

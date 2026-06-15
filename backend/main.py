@@ -94,6 +94,10 @@ class ReapplyTransferRequest(BaseModel):
     requested_school: str
     transfer_reason: str
 
+class CheckEligibilityMeoRequest(BaseModel):
+    request_id: str
+    meo_id: str
+
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
@@ -1135,6 +1139,11 @@ def approve_transfer(req: ApproveTransferRequest):
         conn.close()
         raise HTTPException(status_code=403, detail="Not authorized for this mandal")
 
+    # Check if eligibility has been reviewed at least once
+    if not request.get("eligibility_checked"):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Eligibility must be checked before approval. Please click 'Check Eligibility' first.")
+
     now = ist_now_str()
     teacher_id = request["teacher_id"]
     old_school = request["current_school"]
@@ -1238,6 +1247,11 @@ def reject_transfer(req: RejectTransferRequest):
         conn.close()
         raise HTTPException(status_code=403, detail="Not authorized for this mandal")
 
+    # Check if eligibility has been reviewed at least once
+    if not request.get("eligibility_checked"):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Eligibility must be checked before rejection. Please click 'Check Eligibility' first.")
+
     now = ist_now_str()
     conn.execute(
         """UPDATE transfer_requests SET status = 'Rejected', approval_date = ?,
@@ -1261,6 +1275,267 @@ def reject_transfer(req: RejectTransferRequest):
     )
 
     return {"success": True, "message": "Transfer rejected"}
+
+
+@app.post("/check_eligibility_meo")
+def check_eligibility_meo(req: CheckEligibilityMeoRequest):
+    """
+    MEO checks eligibility for a specific transfer request.
+    Uses the same predict_transfer logic but records the audit trail.
+    """
+    conn = get_db()
+    
+    # Verify the request exists and MEO is authorized
+    request = conn.execute(
+        "SELECT * FROM transfer_requests WHERE request_id = ?", (req.request_id,)
+    ).fetchone()
+    if not request:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Transfer request not found")
+
+    meo = conn.execute("SELECT * FROM meos WHERE meo_id = ?", (req.meo_id,)).fetchone()
+    if not meo:
+        conn.close()
+        raise HTTPException(status_code=404, detail="MEO not found")
+
+    if meo["assigned_mandal"] != request["mandal"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Not authorized for this mandal")
+
+    # Call the predict_transfer logic for this teacher
+    try:
+        prediction_req = PredictRequest(teacher_id=request["teacher_id"])
+        
+        # Get teacher data
+        teacher = conn.execute(
+            "SELECT * FROM teachers WHERE teacher_id = ?", (request["teacher_id"],)
+        ).fetchone()
+        if not teacher:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Teacher not found")
+
+        t = dict(teacher)
+        refresh_years_of_service(conn, t)
+        refresh_years_in_current_school(conn, t)
+
+        # Check cooling-period eligibility first
+        is_eligible, days_remaining, cooling_period_reason = check_transfer_cooling_period(t)
+        
+        if not is_eligible:
+            # Teacher is in cooling period - NOT eligible for transfer
+            eligibility_result = {
+                "teacher_id": request["teacher_id"],
+                "name": t["name"],
+                "subject": t["subject"],
+                "transfer_recommended": False,
+                "transfer_eligible": False,
+                "eligibility_reason": cooling_period_reason,
+                "confidence": 0.0,
+                "priority_score": 0,
+                "reasons": [cooling_period_reason],
+                "details": {
+                    "years_of_service": t["years_of_service"],
+                    "transfer_request": t["transfer_request"],
+                    "medical_condition": t["medical_condition"],
+                    "spouse_distance": t["spouse_distance"],
+                    "promotion_due": t["promotion_due"],
+                    "years_in_current_school": t.get("years_in_current_school", 0),
+                    "last_transfer_date": t.get("last_transfer_date"),
+                    "days_since_last_transfer": (datetime.now() - datetime.strptime(t["last_transfer_date"], "%Y-%m-%d")).days if t.get("last_transfer_date") else None,
+                }
+            }
+        else:
+            # Call the full predict_transfer logic
+            priority = compute_priority(t)
+            reasons = get_transfer_reasons(t)
+            min_tenure_met = t.get("years_in_current_school", 0) >= MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER
+
+            if not min_tenure_met:
+                tenure_warning = f"Current school tenure is {t.get('years_in_current_school', 0)} year(s), below the required {MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER} years."
+                if tenure_warning not in reasons:
+                    reasons.append(tenure_warning)
+
+            prediction = False
+            confidence = 0.0
+
+            if model and le_subject and feature_cols:
+                # build feature vector including school-level features
+                school = conn.execute("SELECT * FROM schools WHERE school_id = ?", (t.get('current_school'),)).fetchone()
+                if school:
+                    school = dict(school)
+                else:
+                    school = {}
+
+                subj_vacancy = 0
+                shortage = 0
+                ratio = 0
+                school_cat_enc = 0
+                mandal_enc = 0
+                district_enc = 0
+
+                if school:
+                    try:
+                        vac = json.loads(school['subject_wise_vacancy'] or '{}')
+                        subj_vacancy = int(vac.get(t.get('subject'), 0))
+                    except Exception:
+                        subj_vacancy = 0
+                    shortage = max(0, (school.get('required_teacher_count') or 0) - (school.get('current_teacher_count') or 0))
+                    ratio = school.get('student_teacher_ratio') or 0
+                    # encode school category
+                    st = school.get('student_strength') or 0
+                    if st < 300:
+                        cat = 'small'
+                    elif st < 800:
+                        cat = 'medium'
+                    else:
+                        cat = 'large'
+                    try:
+                        if le_schoolcat:
+                            school_cat_enc = int(le_schoolcat.transform([cat])[0])
+                    except Exception:
+                        school_cat_enc = 0
+                    try:
+                        if le_mandal:
+                            mandal_enc = int(le_mandal.transform([school.get('mandal') or t.get('mandal')])[0])
+                    except Exception:
+                        mandal_enc = 0
+                    try:
+                        if le_district:
+                            district_enc = int(le_district.transform([school.get('district') or t.get('current_district')])[0])
+                    except Exception:
+                        district_enc = 0
+
+                try:
+                    subj_enc = int(le_subject.transform([t.get('subject')])[0])
+                except Exception:
+                    subj_enc = 0
+
+                feat_map = {
+                    'years_of_service': t.get('years_of_service', 0),
+                    'years_in_current_school': t.get('years_in_current_school', 0),
+                    'transfer_request': t.get('transfer_request', 0),
+                    'medical_condition': t.get('medical_condition', 0),
+                    'spouse_distance': t.get('spouse_distance', 0),
+                    'promotion_due': t.get('promotion_due', 0),
+                    'subject_encoded': subj_enc,
+                    'subject_vacancy': subj_vacancy,
+                    'shortage': shortage,
+                    'student_teacher_ratio': ratio,
+                    'school_cat_enc': school_cat_enc,
+                    'mandal_enc': mandal_enc,
+                    'district_enc': district_enc,
+                }
+
+                X = pd.DataFrame([[feat_map.get(c, 0) for c in feature_cols]], columns=feature_cols)
+                pred = int(model.predict(X)[0])
+                proba = model.predict_proba(X)[0]
+                prediction = bool(pred)
+                raw_prob = float(proba[pred])
+                calibrated = max(0.01, min(0.99, raw_prob))
+                confidence = round(calibrated * 100, 1)
+                if confidence >= 99.5:
+                    confidence = 95.0
+                
+                # Add explainability reasons from features
+                try:
+                    if subj_vacancy > 0:
+                        reasons.append(f"Subject vacancy in current school: {subj_vacancy} opening(s)")
+                    if shortage > 0:
+                        reasons.append(f"School has a shortage of {shortage} teacher(s)")
+                    if ratio and ratio > 35:
+                        reasons.append(f"High student-teacher ratio ({ratio}:1) at current school")
+                    if t.get('years_in_current_school', 0) >= MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER:
+                        reasons.append(f"Required tenure completed: {t.get('years_in_current_school', 0)} year(s) at current school")
+                    if t.get('medical_condition') == 1:
+                        reasons.append('Medical grounds reported')
+                    if t.get('spouse_distance', 0) > 200:
+                        reasons.append(f"Spouse located {t.get('spouse_distance')} km away")
+                except Exception:
+                    pass
+            else:
+                prediction = priority >= 45
+                confidence = min(priority + 20, 95)
+
+            # Enforce minimum tenure rule
+            if not min_tenure_met:
+                if not (t.get('medical_condition') == 1 or t.get('spouse_distance', 0) > 200 or t.get('transfer_request') == 1):
+                    prediction = False
+                    confidence = min(confidence, 40.0)
+                    if "Current school tenure" not in " ".join(reasons):
+                        reasons.append(f"Current school tenure is {t.get('years_in_current_school', 0)} year(s), below the required {MIN_YEARS_IN_CURRENT_SCHOOL_FOR_TRANSFER} years.")
+
+            eligibility_result = {
+                "teacher_id": request["teacher_id"],
+                "name": t["name"],
+                "subject": t["subject"],
+                "transfer_recommended": prediction,
+                "transfer_eligible": True,
+                "confidence": confidence,
+                "priority_score": priority,
+                "reasons": reasons,
+                "details": {
+                    "years_of_service": t["years_of_service"],
+                    "date_of_first_appointment": t.get("date_of_first_appointment"),
+                    "date_joined_current_school": t.get("date_joined_current_school"),
+                    "transfer_request": t["transfer_request"],
+                    "medical_condition": t["medical_condition"],
+                    "spouse_distance": t["spouse_distance"],
+                    "promotion_due": t["promotion_due"],
+                    "years_in_current_school": t.get("years_in_current_school", 0),
+                    "last_transfer_date": t.get("last_transfer_date"),
+                    "days_since_last_transfer": (datetime.now() - datetime.strptime(t["last_transfer_date"], "%Y-%m-%d")).days if t.get("last_transfer_date") else None,
+                }
+            }
+
+        # Store in audit trail
+        now = ist_now_str()
+        key_factors = json.dumps(eligibility_result.get("reasons", [])[:3])
+        explanation = "; ".join(eligibility_result.get("reasons", []))
+        
+        conn.execute(
+            """INSERT INTO eligibility_audit_trail 
+               (request_id, teacher_id, meo_id, eligibility_result, transfer_recommended, 
+                confidence_score, priority_score, key_factors, explanation)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                req.request_id,
+                request["teacher_id"],
+                req.meo_id,
+                json.dumps(eligibility_result),
+                1 if eligibility_result.get("transfer_recommended") else 0,
+                eligibility_result.get("confidence", 0),
+                eligibility_result.get("priority_score", 0),
+                key_factors,
+                explanation
+            )
+        )
+
+        # Mark the request as having eligibility checked
+        conn.execute(
+            """UPDATE transfer_requests 
+               SET eligibility_checked = 1, eligibility_checked_date = ?, eligibility_result = ?
+               WHERE request_id = ?""",
+            (now, json.dumps(eligibility_result), req.request_id)
+        )
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "eligibility_result": eligibility_result,
+            "audit_logged": True
+        }
+
+    except Exception as e:
+        conn.close()
+        import traceback
+        os.makedirs(os.path.join(os.path.dirname(__file__), "logs"), exist_ok=True)
+        with open(os.path.join(os.path.dirname(__file__), "logs", "eligibility_check_error.log"), "a", encoding="utf-8") as fh:
+            fh.write("--- MEO ELIGIBILITY CHECK EXCEPTION ---\n")
+            traceback.print_exc(file=fh)
+            fh.write("\n")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Dashboard Stats ──────────────────────────────────────────────────────────

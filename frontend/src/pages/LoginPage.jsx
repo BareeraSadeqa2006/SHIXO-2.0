@@ -62,22 +62,19 @@ export default function LoginPage({ onLogin }) {
 
     {/* Main Section */}
 
-        {/* Main Section */}
-<div className="flex-1 flex items-center">
+    <div className="flex-1 flex flex-col lg:flex-row items-center justify-between px-6 lg:px-10 gap-8">
 
-  {/* Left Side */}
-  <div className="w-full lg:w-[55%] flex justify-start pl-8">
-    <img
-      src="/Learning-amico.svg"
-      alt="Illustration"
-     
-      className="w-[280px] -mr-16"
-    />
-  </div>
+      {/* Left Side */}
+      <div className="w-full lg:w-1/2 flex justify-center items-center">
+        <img
+          src="/Learning-amico.svg"
+          alt="Illustration"
+          className="w-[280px]"
+        />
+      </div>
 
-  {/* Right Side */}
-  <div className="w-full lg:w-[55%] flex justify-start pl-6"></div>
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      {/* Login Card */}
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
 
             {/* Header */}
             <div className="bg-gradient-to-br from-teal to-teal-light px-8 py-7 text-center">

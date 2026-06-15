@@ -228,6 +228,20 @@ def init_db():
         read INTEGER DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS eligibility_audit_trail (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_id TEXT REFERENCES transfer_requests(request_id),
+        teacher_id TEXT REFERENCES teachers(teacher_id),
+        meo_id TEXT REFERENCES meos(meo_id),
+        checked_at TEXT DEFAULT (datetime('now')),
+        eligibility_result TEXT NOT NULL,
+        transfer_recommended INTEGER,
+        confidence_score REAL,
+        priority_score REAL,
+        key_factors TEXT,
+        explanation TEXT
+    );
     """)
 
     # Ensure legacy installs are upgraded safely
@@ -245,6 +259,15 @@ def init_db():
             c.execute("ALTER TABLE teachers ADD COLUMN age INTEGER DEFAULT NULL")
         except Exception:
             pass
+
+    # Add columns to transfer_requests for eligibility tracking
+    transfer_req_cols = {row[1] for row in c.execute("PRAGMA table_info(transfer_requests)").fetchall()}
+    if 'eligibility_checked' not in transfer_req_cols:
+        c.execute("ALTER TABLE transfer_requests ADD COLUMN eligibility_checked INTEGER DEFAULT 0")
+    if 'eligibility_checked_date' not in transfer_req_cols:
+        c.execute("ALTER TABLE transfer_requests ADD COLUMN eligibility_checked_date TEXT")
+    if 'eligibility_result' not in transfer_req_cols:
+        c.execute("ALTER TABLE transfer_requests ADD COLUMN eligibility_result TEXT")
 
     # Backfill service dates for legacy rows using existing year values when possible.
     for row in c.execute(

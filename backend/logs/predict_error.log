@@ -12,3 +12,39 @@ Traceback (most recent call last):
                    ^^^^^^^^^^
 AttributeError: 'sqlite3.Row' object has no attribute 'get'
 
+--- PREDICT TRANSFER EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\91986\Desktop\shixo2\SHIXO-2.0\backend\main.py", line 819, in predict_transfer
+    "days_since_last_transfer": (datetime.now() - datetime.strptime(t["last_transfer_date"], "%Y-%m-%d")).days if t.get("last_transfer_date") else None,
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 567, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  21:15 IST
+
+--- PREDICT TRANSFER EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\91986\Desktop\shixo2\SHIXO-2.0\backend\main.py", line 819, in predict_transfer
+    "days_since_last_transfer": (datetime.now() - datetime.strptime(t["last_transfer_date"], "%Y-%m-%d")).days if t.get("last_transfer_date") else None,
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 567, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  21:15 IST
+
+--- PREDICT TRANSFER EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\91986\Desktop\shixo2\SHIXO-2.0\backend\main.py", line 819, in predict_transfer
+    "days_since_last_transfer": (datetime.now() - datetime.strptime(t["last_transfer_date"], "%Y-%m-%d")).days if t.get("last_transfer_date") else None,
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 567, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\91986\AppData\Local\Programs\Python\Python311\Lib\_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  21:15 IST
+

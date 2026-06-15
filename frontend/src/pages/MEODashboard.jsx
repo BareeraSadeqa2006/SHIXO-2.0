@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMeoDashboard, approveTransfer, rejectTransfer, getMeoAppeals, reviewAppeal, getMeoNotifications } from '../api';
+import { getMeoDashboard, approveTransfer, rejectTransfer, getMeoAppeals, reviewAppeal, getMeoNotifications, checkEligibilityMeo } from '../api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -30,6 +30,9 @@ export default function MEODashboard({ user, onLogout }) {
   const [appealReviewNotes, setAppealReviewNotes] = useState('');
   const [meoNotifs, setMeoNotifs] = useState([]);
   const [showNotif, setShowNotif] = useState(false);
+  const [eligibilityModal, setEligibilityModal] = useState(null);
+  const [eligibilityResult, setEligibilityResult] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,6 +115,23 @@ export default function MEODashboard({ user, onLogout }) {
       alert(err.response?.data?.detail || `Failed to ${action} appeal`);
     }
     setActionLoading('');
+  };
+
+  const handleCheckEligibility = async (requestId) => {
+    setEligibilityLoading(true);
+    setEligibilityModal(requestId);
+    try {
+      const res = await checkEligibilityMeo({
+        request_id: requestId,
+        meo_id: user.user_id,
+      });
+      setEligibilityResult(res.data.eligibility_result);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to check eligibility');
+      setEligibilityModal(null);
+    }
+    setEligibilityLoading(false);
   };
 
   if (loading || !data) {
@@ -360,21 +380,36 @@ export default function MEODashboard({ user, onLogout }) {
                             </td>
                             <td className="p-3 text-xs text-gray-500 max-w-[150px] truncate">{r.transfer_reason}</td>
                             <td className="p-3 text-center">
-                              <div className="flex items-center gap-2 justify-center">
+                              <div className="flex flex-col gap-2">
                                 <button
-                                  onClick={() => handleApprove(r.request_id)}
-                                  disabled={actionLoading === r.request_id}
-                                  className="bg-success hover:bg-success/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                  onClick={() => handleCheckEligibility(r.request_id)}
+                                  disabled={eligibilityLoading && eligibilityModal === r.request_id}
+                                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                                    r.eligibility_checked
+                                      ? 'bg-teal hover:bg-teal/80 text-white'
+                                      : 'bg-gold hover:bg-gold/80 text-navy'
+                                  } disabled:opacity-50`}
                                 >
-                                  Approve
+                                  {r.eligibility_checked ? '✓ Eligibility Checked' : 'Check Eligibility'}
                                 </button>
-                                <button
-                                  onClick={() => { setRejectModal(r.request_id); setRejectReason(''); }}
-                                  disabled={actionLoading === r.request_id}
-                                  className="bg-alert hover:bg-alert/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                                >
-                                  Reject
-                                </button>
+                                <div className="flex items-center gap-2 justify-center">
+                                  <button
+                                    onClick={() => handleApprove(r.request_id)}
+                                    disabled={actionLoading === r.request_id || !r.eligibility_checked}
+                                    className="bg-success hover:bg-success/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                    title={!r.eligibility_checked ? 'Check eligibility first' : ''}
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => { setRejectModal(r.request_id); setRejectReason(''); }}
+                                    disabled={actionLoading === r.request_id || !r.eligibility_checked}
+                                    className="bg-alert hover:bg-alert/80 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                    title={!r.eligibility_checked ? 'Check eligibility first' : ''}
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -687,6 +722,81 @@ export default function MEODashboard({ user, onLogout }) {
                 className="flex-1 bg-light-gray hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-medium"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Eligibility Results Modal */}
+      {eligibilityModal && eligibilityResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-96 overflow-y-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${
+                eligibilityResult.transfer_recommended ? 'bg-success' : 'bg-alert'
+              }`}>
+                {eligibilityResult.transfer_recommended ? '✓' : '✗'}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-navy">Transfer Eligibility Review</h3>
+                <p className="text-sm text-gray-500">{eligibilityResult.name} ({eligibilityResult.teacher_id})</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className={`p-3 rounded-lg ${eligibilityResult.transfer_recommended ? 'bg-success/10' : 'bg-alert/10'}`}>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Recommendation</p>
+                <p className={`text-sm font-bold ${eligibilityResult.transfer_recommended ? 'text-success' : 'text-alert'}`}>
+                  {eligibilityResult.transfer_recommended ? 'Transfer Recommended' : 'Transfer Not Recommended'}
+                </p>
+              </div>
+              <div className="bg-teal/10 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Confidence</p>
+                <p className="text-sm font-bold text-teal">{eligibilityResult.confidence}%</p>
+              </div>
+              <div className="bg-gold/10 p-3 rounded-lg col-span-2">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Priority Score</p>
+                <p className="text-sm font-bold text-gold">{eligibilityResult.priority_score}/100</p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-navy mb-2">Key Eligibility Factors</h4>
+              <ul className="space-y-2">
+                {eligibilityResult.reasons && eligibilityResult.reasons.map((reason, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-teal mt-0.5">•</span>
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {eligibilityResult.details && (
+              <div className="mb-4 p-3 bg-soft-white rounded-lg">
+                <h4 className="text-sm font-semibold text-navy mb-2">Teacher Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div><span className="font-medium">Years of Service:</span> {eligibilityResult.details.years_of_service}</div>
+                  <div><span className="font-medium">Years in Current School:</span> {eligibilityResult.details.years_in_current_school}</div>
+                  <div><span className="font-medium">Transfer Request:</span> {eligibilityResult.details.transfer_request ? 'Yes' : 'No'}</div>
+                  <div><span className="font-medium">Medical Condition:</span> {eligibilityResult.details.medical_condition ? 'Yes' : 'No'}</div>
+                  <div><span className="font-medium">Spouse Distance:</span> {eligibilityResult.details.spouse_distance} km</div>
+                  <div><span className="font-medium">Promotion Due:</span> {eligibilityResult.details.promotion_due ? 'Yes' : 'No'}</div>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 mb-4 italic">
+              Note: This AI recommendation is advisory. You can approve or reject based on your professional judgment and policy requirements.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEligibilityModal(null)}
+                className="flex-1 bg-teal hover:bg-teal/80 text-white py-2.5 rounded-lg text-sm font-medium"
+              >
+                Close & Proceed
               </button>
             </div>
           </div>
